@@ -1,0 +1,33 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root { color-scheme: light; }
+
+html, body { background: #f6efde; color: #1f1a14; }
+
+.parchment {
+  background-image:
+    radial-gradient(rgba(124,45,58,0.05) 1px, transparent 1px),
+    linear-gradient(180deg, #f8f1e0, #f1e7cf);
+  background-size: 22px 22px, auto;
+}
+
+.btn {
+  @apply inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 font-medium transition;
+}
+.btn-primary { @apply btn bg-wine text-parchment hover:bg-wine/90; }
+.btn-ghost   { @apply btn bg-transparent border border-ink/30 hover:bg-ink/5; }
+.btn-gold    { @apply btn bg-gold text-ink hover:bg-gold/90; }
+
+.card        { @apply rounded-xl border border-ink/15 bg-white/70 backdrop-blur-sm shadow-sm; }
+.input       { @apply w-full rounded-lg border border-ink/25 bg-white/80 px-3 py-2 outline-none focus:ring-2 focus:ring-wine/40; }
+.chip        { @apply inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium; }
+.chip-wine   { @apply chip bg-wine/10 text-wine; }
+.chip-gold   { @apply chip bg-gold/20 text-ink; }
+.chip-olive  { @apply chip bg-olive/15 text-olive; }
+.chip-sky    { @apply chip bg-sky/15 text-sky; }
+
+.mastery-cell {
+  @apply h-6 w-6 rounded-md border border-ink/10;
+}
