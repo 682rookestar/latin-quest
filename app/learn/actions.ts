@@ -12,17 +12,18 @@ export async function joinClass(formData: FormData): Promise<void> {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  const { data: cls } = await supabase
-    .from("classes")
-    .select("id, name")
-    .eq("join_code", raw)
+  // SECURITY DEFINER RPC: looks up the class by code AND adds the student
+  // as a class member in one atomic call, bypassing RLS for the lookup.
+  const { data, error } = await supabase
+    .rpc("join_class_by_code", { p_code: raw })
     .maybeSingle();
-  if (!cls) redirect("/learn/join?error=notfound");
 
-  const { error: e2 } = await supabase
-    .from("class_members")
-    .upsert({ class_id: cls.id, student_id: user.id });
-  if (e2) redirect("/learn/join?error=" + encodeURIComponent(e2.message));
+  if (error) {
+    redirect("/learn/join?error=" + encodeURIComponent(error.message));
+  }
+  if (!data) {
+    redirect("/learn/join?error=notfound");
+  }
 
   revalidatePath("/learn");
   redirect("/learn");
