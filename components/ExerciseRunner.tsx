@@ -222,7 +222,17 @@ function QuestionView({
   setAnswer: (v: any) => void;
   submitted: boolean;
 }) {
-  const opts: string[] = useMemo(() => (Array.isArray(q.options) ? q.options : []), [q]);
+  // Shuffle option order on every question render so the correct answer
+  // isn't always in the same slot. Shuffle is keyed off question id so it's
+  // stable within a single mount of the question.
+  const opts: string[] = useMemo(() => {
+    const raw = Array.isArray(q.options) ? [...q.options] : [];
+    for (let i = raw.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [raw[i], raw[j]] = [raw[j], raw[i]];
+    }
+    return raw;
+  }, [q.id]);
 
   if (game === "word_type_sort") {
     const md = (q.metadata ?? {}) as { words: { word: string; type: string }[]; types: string[] };
