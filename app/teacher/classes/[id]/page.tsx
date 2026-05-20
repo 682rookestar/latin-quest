@@ -136,11 +136,13 @@ export default async function ClassDetail({ params }: { params: { id: string } }
         ) : (
           <ul className="card divide-y divide-ink/10">
             {myAttempts.map((a:any)=>{
-              const member = members?.find((m:any)=>m.student_id===a.student_id);
+              const member: any = members?.find((m:any)=>m.student_id===a.student_id);
+              const p: any = member?.profiles;
+              const name: string = (Array.isArray(p) ? p[0]?.display_name ?? p[0]?.email : p?.display_name ?? p?.email) ?? "Unknown";
               return (
                 <li key={a.id} className="p-3 flex items-center justify-between">
                   <div>
-                    <div className="font-medium">{member?.profiles?.display_name ?? member?.profiles?.email}</div>
+                    <div className="font-medium">{name}</div>
                     <div className="text-xs text-ink/60">{a.exercises?.title}</div>
                   </div>
                   <div className="text-sm">
