@@ -56,17 +56,20 @@ export type GameType =
   | "adverb_use"
   | "preposition_picture"
   | "translation"
-  | "multiple_choice";
+  | "multiple_choice"
+  | "boss";
 
 export interface Exercise {
   id: string;
   chapter_id: string;
   skill_id: string | null;
+  grammar_topic_id: string | null;
   title: string;
   description: string | null;
   game_type: GameType;
   difficulty: number;
   position: number;
+  is_boss: boolean;
 }
 
 export interface ExerciseQuestion {
