@@ -1,13 +1,14 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 
 const MASTERY_COLORS = [
-  "bg-ink/5",       // 0
+  "bg-ink/5",
   "bg-wine/15",
   "bg-wine/30",
   "bg-gold/40",
   "bg-olive/50",
-  "bg-olive/70",   // 5
+  "bg-olive/70",
 ];
 
 export default async function ClassDetail({ params }: { params: { id: string } }) {
@@ -44,7 +45,6 @@ export default async function ClassDetail({ params }: { params: { id: string } }
   const myProgress = (progress ?? []).filter((p: any) => studentIds.has(p.student_id));
   const myAttempts = (attempts ?? []).filter((a: any) => studentIds.has(a.student_id));
 
-  // Build per-student aggregate {studentId: {chapterId: {skillId: mastery}}}
   const pmap: Record<string, Record<string, Record<string, number>>> = {};
   for (const row of myProgress as any[]) {
     pmap[row.student_id] ??= {};
@@ -52,66 +52,146 @@ export default async function ClassDetail({ params }: { params: { id: string } }
     pmap[row.student_id][row.chapter_id][row.skill_id] = row.mastery;
   }
 
+  // Per-student attempt totals for the roster
+  const attemptCount: Record<string, number> = {};
+  const avgScore: Record<string, { sum: number; n: number }> = {};
+  for (const a of (await supabase
+    .from("attempts")
+    .select("student_id, score_pct")
+    .in("student_id", [...studentIds])
+    .not("completed_at", "is", null)).data ?? []) {
+    const sid = (a as any).student_id;
+    attemptCount[sid] = (attemptCount[sid] ?? 0) + 1;
+    avgScore[sid] ??= { sum: 0, n: 0 };
+    if ((a as any).score_pct != null) {
+      avgScore[sid].sum += (a as any).score_pct;
+      avgScore[sid].n += 1;
+    }
+  }
+
   return (
     <div className="space-y-8">
-      <header>
-        <h1 className="text-3xl font-bold">{klass.name}</h1>
-        <div className="flex items-center gap-3 mt-2">
-          <span className="chip-gold">Join code: <span className="font-mono ml-1">{klass.join_code}</span></span>
-          <span className="text-sm text-ink/60">{members?.length ?? 0} student{members?.length === 1 ? "" : "s"}</span>
+      <header className="flex items-start justify-between gap-3">
+        <div>
+          <h1 className="text-3xl font-bold">{klass.name}</h1>
+          <div className="flex items-center gap-3 mt-2">
+            <span className="chip-gold">Join code: <span className="font-mono ml-1">{klass.join_code}</span></span>
+            <span className="text-sm text-ink/60">{members?.length ?? 0} student{members?.length === 1 ? "" : "s"}</span>
+          </div>
+          <p className="text-sm text-ink/60 mt-2">
+            Share the join code with your students &mdash; they enter it at <code>/learn/join</code>.
+          </p>
         </div>
-        <p className="text-sm text-ink/60 mt-2">
-          Share the join code with your students — they'll enter it at <code>/learn/join</code>.
-        </p>
+        <a
+          href={`/teacher/classes/${klass.id}/export`}
+          className="btn-gold whitespace-nowrap"
+          download
+        >
+          Export to Excel
+        </a>
       </header>
+
+      <section>
+        <h2 className="text-xl font-semibold mb-3">Students</h2>
+        {!members?.length ? (
+          <p className="text-ink/60">No students yet. Once they join with the code, they will appear here.</p>
+        ) : (
+          <div className="card divide-y divide-ink/10">
+            {(members as any[]).map((m) => {
+              const p: any = Array.isArray(m.profiles) ? m.profiles[0] : m.profiles;
+              const name = p?.display_name ?? p?.email ?? "Unknown";
+              const sid = m.student_id;
+              const att = attemptCount[sid] ?? 0;
+              const avg = avgScore[sid]?.n ? Math.round(avgScore[sid].sum / avgScore[sid].n) : null;
+              return (
+                <Link
+                  key={sid}
+                  href={`/teacher/classes/${klass.id}/students/${sid}`}
+                  className="block p-3 hover:bg-ink/5 flex items-center justify-between"
+                >
+                  <div>
+                    <div className="font-medium">{name}</div>
+                    <div className="text-xs text-ink/60">{p?.email}</div>
+                  </div>
+                  <div className="text-sm flex items-center gap-4">
+                    <span className="text-ink/60">{att} attempt{att === 1 ? "" : "s"}</span>
+                    {avg != null && <span className="chip-olive">avg {avg}%</span>}
+                    <span className="text-ink/40">&rsaquo;</span>
+                  </div>
+                </Link>
+              );
+            })}
+          </div>
+        )}
+      </section>
 
       <section>
         <h2 className="text-xl font-semibold mb-3">Skill matrix</h2>
         <p className="text-sm text-ink/60 mb-4">
-          Each cell shows mastery (0–5) for one skill in one chapter. Hover for details.
+          Each cell shows mastery (0&ndash;5) for one skill in one chapter. Hover for details.
         </p>
         {!members?.length ? (
-          <p className="text-ink/60">No students yet. Once they join with the code, their progress will appear here.</p>
+          <p className="text-ink/60">No students yet.</p>
         ) : (
           <div className="overflow-x-auto card p-3">
             <table className="text-sm border-separate border-spacing-1">
               <thead>
                 <tr>
                   <th className="text-left p-2">Student</th>
-                  {chapters?.map((ch:any)=>(
-                    <th key={ch.id} colSpan={skills?.length ?? 1} className="text-xs p-1 text-ink/60 border-b border-ink/10">
+                  {chapters?.map((ch: any) => (
+                    <th
+                      key={ch.id}
+                      colSpan={skills?.length ?? 1}
+                      className="text-xs p-1 text-ink/60 border-b border-ink/10"
+                    >
                       Ch {ch.number}: {ch.title}
                     </th>
                   ))}
                 </tr>
                 <tr>
                   <th></th>
-                  {chapters?.flatMap((ch:any)=>skills?.map((sk:any)=>(
-                    <th key={ch.id+sk.id} className="text-[10px] p-0 align-bottom whitespace-nowrap">
-                      <div className="rotate-[-60deg] origin-bottom-left translate-y-2 inline-block max-w-[2.5rem] text-ink/60">
-                        {sk.display_name}
-                      </div>
-                    </th>
-                  )) ?? [])}
+                  {chapters?.flatMap((ch: any) =>
+                    skills?.map((sk: any) => (
+                      <th
+                        key={ch.id + sk.id}
+                        className="text-[10px] p-0 align-bottom whitespace-nowrap"
+                      >
+                        <div className="rotate-[-60deg] origin-bottom-left translate-y-2 inline-block max-w-[2.5rem] text-ink/60">
+                          {sk.display_name}
+                        </div>
+                      </th>
+                    )) ?? []
+                  )}
                 </tr>
               </thead>
               <tbody>
-                {members.map((m:any)=>{
+                {(members as any[]).map((m) => {
                   const sid = m.student_id;
+                  const p: any = Array.isArray(m.profiles) ? m.profiles[0] : m.profiles;
+                  const name = p?.display_name ?? p?.email ?? "Unknown";
                   return (
                     <tr key={sid}>
-                      <td className="p-2 whitespace-nowrap">{m.profiles?.display_name ?? m.profiles?.email}</td>
-                      {chapters?.flatMap((ch:any)=>skills?.map((sk:any)=>{
-                        const lvl = pmap[sid]?.[ch.id]?.[sk.id] ?? 0;
-                        return (
-                          <td key={ch.id+sk.id} className="p-0">
-                            <div
-                              title={`${sk.display_name} — Ch ${ch.number} — mastery ${lvl}/5`}
-                              className={`mastery-cell ${MASTERY_COLORS[Math.min(5, Math.max(0, lvl))]}`}
-                            />
-                          </td>
-                        );
-                      }) ?? [])}
+                      <td className="p-2 whitespace-nowrap">
+                        <Link
+                          className="hover:underline"
+                          href={`/teacher/classes/${klass.id}/students/${sid}`}
+                        >
+                          {name}
+                        </Link>
+                      </td>
+                      {chapters?.flatMap((ch: any) =>
+                        skills?.map((sk: any) => {
+                          const lvl = pmap[sid]?.[ch.id]?.[sk.id] ?? 0;
+                          return (
+                            <td key={ch.id + sk.id} className="p-0">
+                              <div
+                                title={`${sk.display_name} - Ch ${ch.number} - mastery ${lvl}/5`}
+                                className={`mastery-cell ${MASTERY_COLORS[Math.min(5, Math.max(0, lvl))]}`}
+                              />
+                            </td>
+                          );
+                        }) ?? []
+                      )}
                     </tr>
                   );
                 })}
@@ -119,7 +199,7 @@ export default async function ClassDetail({ params }: { params: { id: string } }
             </table>
             <div className="flex items-center gap-2 mt-3 text-xs text-ink/60">
               <span>Mastery:</span>
-              {MASTERY_COLORS.map((c,i)=>(
+              {MASTERY_COLORS.map((c, i) => (
                 <span key={i} className="flex items-center gap-1">
                   <span className={`h-3 w-3 rounded ${c} border border-ink/10`} /> {i}
                 </span>
@@ -135,15 +215,21 @@ export default async function ClassDetail({ params }: { params: { id: string } }
           <p className="text-ink/60">No attempts yet.</p>
         ) : (
           <ul className="card divide-y divide-ink/10">
-            {myAttempts.map((a:any)=>{
-              const member: any = members?.find((m:any)=>m.student_id===a.student_id);
-              const p: any = member?.profiles;
-              const name: string = (Array.isArray(p) ? p[0]?.display_name ?? p[0]?.email : p?.display_name ?? p?.email) ?? "Unknown";
+            {(myAttempts as any[]).map((a) => {
+              const member: any = (members as any[])?.find((m: any) => m.student_id === a.student_id);
+              const p: any = member ? (Array.isArray(member.profiles) ? member.profiles[0] : member.profiles) : null;
+              const name = p?.display_name ?? p?.email ?? "Unknown";
+              const exer: any = Array.isArray(a.exercises) ? a.exercises[0] : a.exercises;
               return (
                 <li key={a.id} className="p-3 flex items-center justify-between">
                   <div>
-                    <div className="font-medium">{name}</div>
-                    <div className="text-xs text-ink/60">{a.exercises?.title}</div>
+                    <Link
+                      className="font-medium hover:underline"
+                      href={`/teacher/classes/${klass.id}/students/${a.student_id}`}
+                    >
+                      {name}
+                    </Link>
+                    <div className="text-xs text-ink/60">{exer?.title}</div>
                   </div>
                   <div className="text-sm">
                     <span className="font-mono">{a.correct_questions}/{a.total_questions}</span>
