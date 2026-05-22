@@ -43,15 +43,25 @@ export default async function ChapterPage({ params }: { params: { id: string } }
     { data: grammar },
     { data: exercises },
     { data: attempts },
+    { data: lockedRows },
   ] = await Promise.all([
     supabase.from("chapters").select("*").eq("id", params.id).single(),
     supabase.from("vocab_items").select("*").eq("chapter_id", params.id).order("part_of_speech"),
     supabase.from("grammar_topics").select("*").eq("chapter_id", params.id),
     supabase.from("exercises").select("id, title, description, game_type, position, grammar_topic_id, is_boss").eq("chapter_id", params.id).order("position"),
     supabase.from("attempts").select("exercise_id, score_pct, completed_at").eq("student_id", user.id).not("completed_at","is",null),
+    supabase.rpc("locked_chapters_for_me"),
   ]);
 
   if (!chapter) redirect("/learn");
+
+  // If this chapter is locked across all of the student's classes,
+  // bounce them back to /learn rather than letting them deep-link in.
+  // Teachers / admins are never locked (the RPC returns empty for them).
+  const isLocked = ((lockedRows as any[]) ?? []).some(
+    (r) => r.chapter_id === params.id
+  );
+  if (isLocked) redirect("/learn?locked=1");
 
   const bestScore: Record<string, number> = {};
   for (const a of (attempts ?? []) as any[]) {

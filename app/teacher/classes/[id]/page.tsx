@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { rotateJoinCode } from "@/app/teacher/actions";
+import { rotateJoinCode, setChapterLock } from "@/app/teacher/actions";
 
 const MASTERY_COLORS = [
   "bg-ink/5",
@@ -38,7 +38,7 @@ export default async function ClassDetail({ params }: { params: { id: string } }
     : (klass as any).profiles;
   const ownerName = ownerProfile?.display_name ?? ownerProfile?.email ?? "Unknown";
 
-  const [{ data: members }, { data: chapters }, { data: skills }, { data: progress }, { data: attempts }] = await Promise.all([
+  const [{ data: members }, { data: chapters }, { data: skills }, { data: progress }, { data: attempts }, { data: lockedRows }] = await Promise.all([
     supabase
       .from("class_members")
       .select("student_id, profiles(id, display_name, email)")
@@ -54,7 +54,15 @@ export default async function ClassDetail({ params }: { params: { id: string } }
       .not("completed_at", "is", null)
       .order("completed_at", { ascending: false })
       .limit(20),
+    supabase
+      .from("class_chapter_locks")
+      .select("chapter_id")
+      .eq("class_id", params.id),
   ]);
+
+  const lockedChapterIds = new Set(
+    ((lockedRows as any[]) ?? []).map((r) => r.chapter_id)
+  );
 
   const studentIds = new Set((members ?? []).map((m: any) => m.student_id));
   const myProgress = (progress ?? []).filter((p: any) => studentIds.has(p.student_id));
@@ -128,6 +136,48 @@ export default async function ClassDetail({ params }: { params: { id: string } }
           Export to Excel
         </a>
       </header>
+
+      <section>
+        <h2 className="text-xl font-semibold mb-1">Chapter access</h2>
+        <p className="text-sm text-ink/60 mb-3">
+          {isOwner
+            ? "Toggle a chapter Locked to hide it from your students on /learn. Open by default."
+            : `View only — only ${ownerName} can change locks for this class.`}
+        </p>
+        <div className="card p-3 grid sm:grid-cols-2 lg:grid-cols-3 gap-2">
+          {chapters?.map((ch: any) => {
+            const locked = lockedChapterIds.has(ch.id);
+            return (
+              <form
+                key={ch.id}
+                action={setChapterLock}
+                className={`flex items-center justify-between gap-2 px-3 py-2 rounded border ${
+                  locked ? "border-wine/40 bg-wine/5" : "border-ink/10"
+                }`}
+              >
+                <div>
+                  <div className="text-xs text-ink/60">Chapter {ch.number}</div>
+                  <div className="font-medium text-sm">{ch.title}</div>
+                </div>
+                <input type="hidden" name="class_id" value={klass.id} />
+                <input type="hidden" name="chapter_id" value={ch.id} />
+                <input type="hidden" name="locked" value={locked ? "0" : "1"} />
+                <button
+                  type="submit"
+                  disabled={!isOwner}
+                  className={`text-xs px-2 py-1 rounded whitespace-nowrap ${
+                    locked
+                      ? "bg-wine text-parchment hover:bg-wine/90"
+                      : "bg-ink/10 hover:bg-ink/20"
+                  } disabled:opacity-50 disabled:cursor-not-allowed`}
+                >
+                  {locked ? "Locked" : "Open"}
+                </button>
+              </form>
+            );
+          })}
+        </div>
+      </section>
 
       <section>
         <h2 className="text-xl font-semibold mb-3">Students</h2>

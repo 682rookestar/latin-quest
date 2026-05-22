@@ -47,6 +47,27 @@ export async function createClass(formData: FormData) {
   throw new Error("Could not allocate a unique join code");
 }
 
+export async function setChapterLock(formData: FormData): Promise<void> {
+  const classId = (formData.get("class_id") as string) || "";
+  const chapterId = (formData.get("chapter_id") as string) || "";
+  // The form sends 'locked'='1' (or omits it) for the *new* desired state.
+  const locked = formData.get("locked") === "1";
+  if (!classId || !chapterId) return;
+
+  const supabase = createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) redirect("/login");
+
+  // The RPC enforces owner-or-admin server-side.
+  await supabase.rpc("set_chapter_lock", {
+    p_class: classId,
+    p_chapter: chapterId,
+    p_locked: locked,
+  });
+
+  revalidatePath(`/teacher/classes/${classId}`);
+}
+
 export async function rotateJoinCode(formData: FormData): Promise<void> {
   const classId = (formData.get("class_id") as string) || "";
   if (!classId) return;

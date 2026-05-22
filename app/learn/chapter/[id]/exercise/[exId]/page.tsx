@@ -17,6 +17,14 @@ export default async function ExercisePage({
     .from("exercises").select("*").eq("id", params.exId).single();
   if (!exercise) notFound();
 
+  // Honour the per-class chapter lock here too -- a student could
+  // otherwise bookmark a deep exercise URL and bypass the /learn UI.
+  const { data: lockedRows } = await supabase.rpc("locked_chapters_for_me");
+  const isLocked = ((lockedRows as any[]) ?? []).some(
+    (r) => r.chapter_id === exercise.chapter_id
+  );
+  if (isLocked) redirect("/learn?locked=1");
+
   let questions: any[] = [];
 
   if (exercise.is_boss) {
