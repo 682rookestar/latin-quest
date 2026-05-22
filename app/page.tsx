@@ -78,7 +78,7 @@ export default async function LandingPage() {
           <p className="h-display text-2xl lg:text-3xl mt-5 leading-[1.2] text-gold" style={{ textShadow: "0 0 18px rgba(251,191,36,0.25)" }}>
             Decrypt the empire.
           </p>
-          <p className="h-display text-lg lg:text-xl mt-3 leading-[1.25] tracking-[0.08em] text-sky">
+          <p className="h-display text-2xl lg:text-3xl mt-3 leading-[1.2] tracking-[0.04em] text-sky">
             2000 years of secrets &mdash; and you are the key.
           </p>
 
