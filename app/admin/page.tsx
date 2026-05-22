@@ -10,10 +10,10 @@ export default async function AdminHome() {
     .from("profiles").select("role, display_name").eq("id", user.id).single();
   if (profile?.role !== "admin") redirect("/dashboard");
 
-  const [{ count: teacherCount }, { count: studentCount }, { count: pendingInvites }] = await Promise.all([
+  const [{ count: teacherCount }, { count: studentCount }, { count: invitesSent }] = await Promise.all([
     supabase.from("profiles").select("id", { count: "exact", head: true }).eq("role", "teacher"),
     supabase.from("profiles").select("id", { count: "exact", head: true }).eq("role", "student"),
-    supabase.from("teacher_invites").select("id", { count: "exact", head: true }).is("accepted_at", null),
+    supabase.from("teacher_invites").select("id", { count: "exact", head: true }),
   ]);
 
   return (
@@ -33,15 +33,15 @@ export default async function AdminHome() {
           <div className="text-3xl font-bold">{studentCount ?? 0}</div>
         </div>
         <div className="card p-5">
-          <div className="text-sm text-ink/60">Pending teacher invites</div>
-          <div className="text-3xl font-bold">{pendingInvites ?? 0}</div>
+          <div className="text-sm text-ink/60">Teacher invites sent</div>
+          <div className="text-3xl font-bold">{invitesSent ?? 0}</div>
         </div>
       </section>
 
       <section className="card p-5">
         <h2 className="text-lg font-semibold mb-2">Manage teachers</h2>
         <p className="text-sm text-ink/60 mb-3">
-          Teachers can only be added by invite. Send an invite by email and they&apos;ll be promoted as soon as they click the magic link.
+          Teachers can only be added by invite. Send an invite by email and they&apos;ll get an invitation link to set their password.
         </p>
         <Link href="/admin/teachers" className="btn-primary inline-block">Invite a teacher</Link>
       </section>

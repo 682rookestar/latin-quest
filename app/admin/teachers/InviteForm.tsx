@@ -1,8 +1,9 @@
 "use client";
 import { useFormState, useFormStatus } from "react-dom";
 import { inviteTeacher } from "../actions";
+import CopyLinkButton from "./CopyLinkButton";
 
-type Result = { ok: boolean; message: string };
+type Result = { ok: boolean; message: string; link?: string | null };
 
 function SubmitBtn() {
   const { pending } = useFormStatus();
@@ -28,9 +29,20 @@ export default function InviteForm() {
         <SubmitBtn />
       </div>
       {state && (
-        <p className={`text-sm ${state.ok ? "text-olive" : "text-wine"}`}>
-          {state.message}
-        </p>
+        <div className={`text-sm ${state.ok ? "text-olive" : "text-wine"}`}>
+          <p>{state.message}</p>
+          {state.ok && state.link && (
+            <div className="mt-2 p-3 rounded border border-ink/10 bg-parchment/60">
+              <div className="text-xs text-ink/70 mb-1">
+                Backup link (give this to the teacher if the email doesn&apos;t arrive):
+              </div>
+              <div className="flex items-center gap-3">
+                <code className="text-xs break-all flex-1 text-ink/80">{state.link}</code>
+                <CopyLinkButton link={state.link} />
+              </div>
+            </div>
+          )}
+        </div>
       )}
     </form>
   );
