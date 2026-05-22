@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import TransferOwnerForm from "./TransferOwnerForm";
+import PageHero from "@/components/PageHero";
 
 function fmtDate(d: string | null) {
   if (!d) return "—";
@@ -39,13 +40,12 @@ export default async function AdminClasses() {
 
   return (
     <div className="space-y-8">
-      <header>
-        <h1 className="text-3xl font-bold">Classes</h1>
-        <p className="text-ink/60">
-          All classes across teachers. Use the dropdown to transfer ownership;
-          the previous owner loses edit rights immediately.
-        </p>
-      </header>
+      <PageHero
+        latinTag="Classes"
+        title="Classes"
+        subtitle="All classes across teachers. Use the dropdown to transfer ownership; the previous owner loses edit rights immediately."
+        variant="colosseum"
+      />
 
       <section>
         {!classes?.length ? (

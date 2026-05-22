@@ -4,6 +4,7 @@ import InviteForm from "./InviteForm";
 import CopyLinkButton from "./CopyLinkButton";
 import ResetPasswordButton from "./ResetPasswordButton";
 import { revokeInvite } from "../actions";
+import PageHero from "@/components/PageHero";
 
 function fmtDate(d: string | null) {
   if (!d) return "—";
@@ -40,13 +41,12 @@ export default async function TeachersAdmin() {
 
   return (
     <div className="space-y-8">
-      <header>
-        <h1 className="text-3xl font-bold">Teachers</h1>
-        <p className="text-ink/60">
-          Invite teachers by email. They&apos;ll receive an invitation link to set their password and finish signup.
-          If their email scanner kills the link, copy the backup link below and DM it to them instead.
-        </p>
-      </header>
+      <PageHero
+        latinTag="Magistri"
+        title="Teachers"
+        subtitle="Invite teachers by email. They'll receive an invitation link to set their password and finish signup. If their email scanner kills the link, copy the backup link below and DM it to them instead."
+        variant="colosseum"
+      />
 
       <section className="card p-5">
         <h2 className="font-semibold mb-3">Invite a teacher</h2>
@@ -54,7 +54,7 @@ export default async function TeachersAdmin() {
       </section>
 
       <section>
-        <h2 className="text-xl font-semibold mb-3">Sent invites</h2>
+        <h2 className="h-display text-xl mb-3">Sent invites</h2>
         {!invites?.length ? (
           <p className="text-ink/60">No invites yet.</p>
         ) : (
@@ -99,7 +99,7 @@ export default async function TeachersAdmin() {
       </section>
 
       <section>
-        <h2 className="text-xl font-semibold mb-3">Teachers &amp; admins</h2>
+        <h2 className="h-display text-xl mb-3">Teachers &amp; admins</h2>
         {!teachers?.length ? (
           <p className="text-ink/60">No teachers yet.</p>
         ) : (

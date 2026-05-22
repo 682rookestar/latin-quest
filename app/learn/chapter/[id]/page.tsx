@@ -110,7 +110,7 @@ export default async function ChapterPage({ params }: { params: { id: string } }
           <span className="chip-wine">Chapter {chapter.number}</span>
           <span className="text-xs text-ink/50">{chapter.subtitle}</span>
         </div>
-        <h1 className="text-3xl font-bold mt-2">{chapter.title}</h1>
+        <h1 className="h-display text-3xl mt-2">{chapter.title}</h1>
         <p className="text-ink/70 mt-1">{chapter.description}</p>
         {chapter.grammar_summary && (
           <p className="text-sm text-ink/60 mt-3 italic">{chapter.grammar_summary}</p>
@@ -119,7 +119,7 @@ export default async function ChapterPage({ params }: { params: { id: string } }
 
       {boss && (
         <section>
-          <h2 className="text-xl font-semibold mb-3">Boss round</h2>
+          <h2 className="h-display text-xl mb-3">Boss round</h2>
           <Link
             href={`/learn/chapter/${params.id}/exercise/${boss.id}`}
             className="card p-5 hover:shadow-md transition block bg-gradient-to-r from-wine/10 to-gold/10 border-wine/30"
@@ -136,7 +136,7 @@ export default async function ChapterPage({ params }: { params: { id: string } }
       )}
 
       <section>
-        <h2 className="text-xl font-semibold mb-3">By grammar topic</h2>
+        <h2 className="h-display text-xl mb-3">By grammar topic</h2>
         {!grammar?.length ? (
           <p className="text-ink/60">No grammar topics listed.</p>
         ) : (
@@ -165,7 +165,7 @@ export default async function ChapterPage({ params }: { params: { id: string } }
 
       {general.length > 0 && (
         <section>
-          <h2 className="text-xl font-semibold mb-3">General practice</h2>
+          <h2 className="h-display text-xl mb-3">General practice</h2>
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-3">
             {general.map((ex: any) => <ExerciseCard key={ex.id} ex={ex} />)}
           </div>

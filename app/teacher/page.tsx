@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { createClass } from "./actions";
+import PageHero from "@/components/PageHero";
 
 export default async function TeacherHome() {
   const supabase = createClient();
@@ -47,12 +48,12 @@ export default async function TeacherHome() {
 
   return (
     <div className="space-y-8">
-      <header>
-        <h1 className="text-3xl font-bold">Teacher dashboard</h1>
-        <p className="text-ink/60">
-          Welcome, {profile?.display_name}. Create a class and share the join code with your students, or browse other teachers&apos; classes below.
-        </p>
-      </header>
+      <PageHero
+        latinTag="Magister"
+        title="Teacher dashboard"
+        subtitle={`Welcome, ${profile?.display_name}. Create a class and share the join code, or browse other teachers' classes below.`}
+        variant="colosseum"
+      />
 
       <section className="card p-5">
         <h2 className="font-semibold mb-3">Create a new class</h2>
@@ -63,7 +64,7 @@ export default async function TeacherHome() {
       </section>
 
       <section>
-        <h2 className="text-xl font-semibold mb-3">Your classes</h2>
+        <h2 className="h-display text-xl mb-3">Your classes</h2>
         {!mine.length ? (
           <p className="text-ink/60">No classes yet &mdash; create one above.</p>
         ) : (
@@ -75,7 +76,7 @@ export default async function TeacherHome() {
 
       {others.length > 0 && (
         <section>
-          <h2 className="text-xl font-semibold mb-3">Other teachers&apos; classes</h2>
+          <h2 className="h-display text-xl mb-3">Other teachers&apos; classes</h2>
           <p className="text-sm text-ink/60 mb-3">
             View-only. You can browse students, attempts, and exports, but only the owning teacher can edit or delete.
           </p>

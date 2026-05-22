@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import PageHero from "@/components/PageHero";
 
 export default async function LearnHome({
   searchParams,
@@ -33,15 +34,17 @@ export default async function LearnHome({
 
   return (
     <div className="space-y-10">
-      <header>
-        <h1 className="text-3xl font-bold">Welcome, {profile?.display_name}</h1>
-        <p className="text-ink/60">Pick a chapter to keep practising, or join a class.</p>
-        {searchParams?.locked === "1" && (
-          <p className="mt-3 text-sm text-wine bg-wine/5 border border-wine/20 rounded p-3">
-            That chapter is currently locked by your teacher. Try another, or check back later.
-          </p>
-        )}
-      </header>
+      <PageHero
+        latinTag="Discipulus"
+        title={`Salve, ${profile?.display_name ?? "discipule"}`}
+        subtitle="Pick a chapter to keep practising, or join a class to compete with your cohort."
+        variant="legionary"
+      />
+      {searchParams?.locked === "1" && (
+        <p className="-mt-4 text-sm text-wine bg-wine/5 border border-wine/20 rounded p-3">
+          That chapter is currently locked by your teacher. Try another, or check back later.
+        </p>
+      )}
 
       <section className="card p-5">
         <h2 className="font-semibold mb-2">Your classes</h2>
@@ -61,7 +64,7 @@ export default async function LearnHome({
       </section>
 
       <section>
-        <h2 className="text-xl font-bold mb-4">Chapters</h2>
+        <h2 className="h-display text-2xl mb-4">Chapters</h2>
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
           {chapters?.map((ch:any)=>{
             const a = chapterAvg[ch.id];

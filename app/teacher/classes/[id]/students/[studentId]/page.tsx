@@ -103,7 +103,8 @@ export default async function StudentDetail({
 
       <header className="flex items-start justify-between gap-3">
         <div>
-          <h1 className="text-3xl font-bold">{profile?.display_name ?? profile?.email}</h1>
+          <p className="h-display text-sky text-xs tracking-[0.3em] mb-1">Discipulus</p>
+          <h1 className="h-display text-3xl">{profile?.display_name ?? profile?.email}</h1>
           <p className="text-sm text-ink/60">{profile?.email}</p>
           <div className="flex items-center gap-3 mt-2 flex-wrap">
             <span className="chip-wine">{totalAttempts} attempt{totalAttempts === 1 ? "" : "s"}</span>
@@ -123,7 +124,7 @@ export default async function StudentDetail({
       </header>
 
       <section>
-        <h2 className="text-xl font-semibold mb-3">Mastery by chapter and skill</h2>
+        <h2 className="h-display text-xl mb-3">Mastery by chapter and skill</h2>
         <div className="overflow-x-auto card p-3">
           <table className="text-sm border-separate border-spacing-1">
             <thead>
@@ -167,7 +168,7 @@ export default async function StudentDetail({
       </section>
 
       <section>
-        <h2 className="text-xl font-semibold mb-3">Per-skill totals</h2>
+        <h2 className="h-display text-xl mb-3">Per-skill totals</h2>
         <div className="card divide-y divide-ink/10">
           {(skills ?? []).map((sk: any) => {
             const agg = aggSkill[sk.id];
@@ -194,7 +195,7 @@ export default async function StudentDetail({
       </section>
 
       <section>
-        <h2 className="text-xl font-semibold mb-3">All attempts</h2>
+        <h2 className="h-display text-xl mb-3">All attempts</h2>
         {!attempts?.length ? (
           <p className="text-ink/60">No attempts yet.</p>
         ) : (

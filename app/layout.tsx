@@ -62,8 +62,13 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           </nav>
         </header>
         <main className="max-w-6xl mx-auto px-6 py-8">{children}</main>
-        <footer className="max-w-6xl mx-auto px-6 py-10 text-xs text-ink/50">
-          Built for the De Romanis curriculum · Latin Quest © {new Date().getFullYear()}
+        <footer className="max-w-6xl mx-auto px-6 py-12 mt-8 border-t border-ink/10">
+          <div className="h-display text-gold text-sm tracking-[0.3em] text-center">
+            Lingua Latina · Potentia Aeterna
+          </div>
+          <div className="text-xs text-ink/45 text-center mt-3">
+            Built for the De Romanis curriculum · Latin Quest © {new Date().getFullYear()}
+          </div>
         </footer>
       </body>
     </html>

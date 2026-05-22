@@ -16,7 +16,8 @@ export default async function AccountPage() {
   return (
     <div className="max-w-md mx-auto space-y-8">
       <header>
-        <h1 className="text-3xl font-bold">Account</h1>
+        <p className="h-display text-sky text-xs tracking-[0.3em] mb-1">Civis</p>
+        <h1 className="h-display text-3xl">Account</h1>
         <p className="text-ink/60">
           Signed in as <span className="font-medium">{user.email}</span>
           {profile?.role && (

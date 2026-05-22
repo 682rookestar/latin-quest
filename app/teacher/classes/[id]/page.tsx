@@ -96,7 +96,8 @@ export default async function ClassDetail({ params }: { params: { id: string } }
     <div className="space-y-8">
       <header className="flex items-start justify-between gap-3">
         <div>
-          <h1 className="text-3xl font-bold">{klass.name}</h1>
+          <p className="h-display text-sky text-xs tracking-[0.3em] mb-1">Class</p>
+          <h1 className="h-display text-3xl">{klass.name}</h1>
           <div className="flex items-center gap-3 mt-2 flex-wrap">
             <span className={`chip-gold ${codeExpired ? "opacity-60" : ""}`}>
               Join code: <span className="font-mono ml-1">{klass.join_code}</span>
@@ -180,7 +181,7 @@ export default async function ClassDetail({ params }: { params: { id: string } }
       </section>
 
       <section>
-        <h2 className="text-xl font-semibold mb-3">Students</h2>
+        <h2 className="h-display text-xl mb-3">Students</h2>
         {!members?.length ? (
           <p className="text-ink/60">No students yet. Once they join with the code, they will appear here.</p>
         ) : (
@@ -214,7 +215,7 @@ export default async function ClassDetail({ params }: { params: { id: string } }
       </section>
 
       <section>
-        <h2 className="text-xl font-semibold mb-3">Skill matrix</h2>
+        <h2 className="h-display text-xl mb-3">Skill matrix</h2>
         <p className="text-sm text-ink/60 mb-4">
           Each cell shows mastery (0&ndash;5) for one skill in one chapter. Hover for details.
         </p>
@@ -298,7 +299,7 @@ export default async function ClassDetail({ params }: { params: { id: string } }
       </section>
 
       <section>
-        <h2 className="text-xl font-semibold mb-3">Recent attempts</h2>
+        <h2 className="h-display text-xl mb-3">Recent attempts</h2>
         {!myAttempts.length ? (
           <p className="text-ink/60">No attempts yet.</p>
         ) : (
