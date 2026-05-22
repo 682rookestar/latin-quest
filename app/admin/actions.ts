@@ -111,6 +111,80 @@ export async function inviteTeacher(
   };
 }
 
+// 12-char unambiguous-alphabet temp password.
+// Strong enough for a one-off reset; admin must DM it to the teacher
+// who is expected to change it immediately via /account.
+function generateTempPassword(): string {
+  const alphabet =
+    "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789";
+  let out = "";
+  for (let i = 0; i < 12; i++) {
+    out += alphabet[Math.floor(Math.random() * alphabet.length)];
+  }
+  return out;
+}
+
+export async function resetTeacherPassword(
+  _prev: { ok: boolean; message: string; tempPassword?: string } | null,
+  formData: FormData
+): Promise<{ ok: boolean; message: string; tempPassword?: string }> {
+  const targetId = (formData.get("target_id") as string) || "";
+  if (!targetId) {
+    return { ok: false, message: "Missing target user id." };
+  }
+
+  const { user, profile } = await requireAdmin();
+  if (!user) return { ok: false, message: "You must be signed in." };
+  if (profile?.role !== "admin") {
+    return { ok: false, message: "Admin access only." };
+  }
+  if (targetId === user.id) {
+    return {
+      ok: false,
+      message: "Use the Account page to change your own password.",
+    };
+  }
+
+  const admin = createAdminClient();
+
+  // Refuse to reset another admin's password from this UI -- doing
+  // so should be a deliberate manual operation, not a one-click
+  // button, to avoid admins accidentally locking each other out.
+  const { data: targetProfile, error: profileError } = await admin
+    .from("profiles")
+    .select("role, email")
+    .eq("id", targetId)
+    .single();
+  if (profileError || !targetProfile) {
+    return { ok: false, message: "Could not find that user." };
+  }
+  if (targetProfile.role === "admin") {
+    return {
+      ok: false,
+      message: "Admins cannot reset another admin's password from here.",
+    };
+  }
+
+  const tempPassword = generateTempPassword();
+  const { error: updateError } = await admin.auth.admin.updateUserById(
+    targetId,
+    { password: tempPassword }
+  );
+  if (updateError) {
+    return {
+      ok: false,
+      message: `Could not reset password: ${updateError.message}`,
+    };
+  }
+
+  revalidatePath("/admin/teachers");
+  return {
+    ok: true,
+    message: `Temporary password for ${targetProfile.email}. They should change it from /account on first sign-in.`,
+    tempPassword,
+  };
+}
+
 export async function revokeInvite(formData: FormData): Promise<void> {
   const id = (formData.get("id") as string) || "";
   if (!id) return;

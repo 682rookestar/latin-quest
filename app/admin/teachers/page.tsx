@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import InviteForm from "./InviteForm";
 import CopyLinkButton from "./CopyLinkButton";
+import ResetPasswordButton from "./ResetPasswordButton";
 import { revokeInvite } from "../actions";
 
 function fmtDate(d: string | null) {
@@ -103,18 +104,32 @@ export default async function TeachersAdmin() {
           <p className="text-ink/60">No teachers yet.</p>
         ) : (
           <ul className="card divide-y divide-ink/10">
-            {(teachers as any[]).map((t) => (
-              <li key={t.id} className="p-3 flex items-center justify-between">
-                <div>
-                  <div className="font-medium">
-                    {t.display_name ?? t.email}
-                    {t.role === "admin" && <span className="ml-2 chip-gold">admin</span>}
+            {(teachers as any[]).map((t) => {
+              const canReset = t.role === "teacher" && t.id !== user.id;
+              return (
+                <li key={t.id} className="p-3 space-y-2">
+                  <div className="flex items-center justify-between gap-3">
+                    <div>
+                      <div className="font-medium">
+                        {t.display_name ?? t.email}
+                        {t.role === "admin" && (
+                          <span className="ml-2 chip-gold">admin</span>
+                        )}
+                      </div>
+                      <div className="text-xs text-ink/60">{t.email}</div>
+                    </div>
+                    <div className="flex items-center gap-4">
+                      <span className="text-xs text-ink/60">
+                        since {fmtDate(t.created_at)}
+                      </span>
+                      {canReset && (
+                        <ResetPasswordButton targetId={t.id} email={t.email} />
+                      )}
+                    </div>
                   </div>
-                  <div className="text-xs text-ink/60">{t.email}</div>
-                </div>
-                <span className="text-xs text-ink/60">since {fmtDate(t.created_at)}</span>
-              </li>
-            ))}
+                </li>
+              );
+            })}
           </ul>
         )}
       </section>
