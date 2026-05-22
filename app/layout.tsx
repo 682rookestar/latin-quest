@@ -24,13 +24,17 @@ export default async function RootLayout({ children }: { children: React.ReactNo
 
   return (
     <html lang="en">
-      <body className="font-serif min-h-screen parchment">
-        <header className="border-b border-ink/15 bg-parchment/80 backdrop-blur sticky top-0 z-10">
+      <body className="min-h-screen parchment">
+        <header className="border-b border-ink/10 bg-parchment/80 backdrop-blur sticky top-0 z-10">
           <nav className="max-w-6xl mx-auto px-6 py-3 flex items-center justify-between">
-            <Link href="/" className="flex items-center gap-2">
-              <span className="text-2xl">⚱</span>
-              <span className="font-bold tracking-wide">Latin Quest</span>
-              <span className="chip-gold ml-2">de Romanis</span>
+            <Link href="/" className="flex items-center gap-2 group">
+              <span
+                aria-hidden
+                className="inline-flex h-7 w-7 items-center justify-center rounded-md text-parchment font-bold"
+                style={{ background: "#22D3EE", boxShadow: "0 0 16px -4px rgba(34,211,238,0.6)" }}
+              >LQ</span>
+              <span className="font-bold tracking-wide group-hover:text-sky transition">Latin Quest</span>
+              <span className="chip-sky ml-2">de Romanis</span>
             </Link>
             <div className="flex items-center gap-3 text-sm">
               {user ? (

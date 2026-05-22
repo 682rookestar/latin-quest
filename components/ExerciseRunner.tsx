@@ -301,7 +301,7 @@ function QuestionView({
           {md.words?.map((w) => (
             <div
               key={w.word}
-              className="flex items-center justify-between gap-3 p-2 rounded bg-white/60 border border-ink/10"
+              className="flex items-center justify-between gap-3 p-2 rounded bg-ink/5 border border-ink/10"
             >
               <span className="font-medium">{w.word}</span>
               <select
@@ -334,8 +334,9 @@ function QuestionView({
         {md.svg && (
           <div className="mt-3 flex justify-center">
             <div
-              className="bg-white/70 rounded-lg p-3 border border-ink/10"
+              className="rounded-lg p-3 border border-ink/10"
               dangerouslySetInnerHTML={{ __html: md.svg }}
+              style={{ background: "#E5E7EB", color: "#0B1220" }}
             />
           </div>
         )}
@@ -408,7 +409,7 @@ function OptionGrid({
             disabled={submitted}
             onClick={() => setAnswer(o)}
             className={`text-left p-3 rounded-lg border transition ${
-              active ? "border-wine bg-wine/10" : "border-ink/15 bg-white/60 hover:bg-white"
+              active ? "border-sky bg-sky/15 text-sky" : "border-ink/15 bg-ink/5 hover:bg-ink/10"
             }`}
           >
             {o}

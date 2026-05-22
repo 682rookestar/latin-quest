@@ -1,33 +1,101 @@
+/* Carlito is a metric-compatible, open replacement for Calibri.
+   Browsers that don't have Calibri installed fall through to it. */
+@import url('https://fonts.googleapis.com/css2?family=Carlito:wght@400;700&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-:root { color-scheme: light; }
+:root { color-scheme: dark; }
 
-html, body { background: #f6efde; color: #1f1a14; }
-
-.parchment {
-  background-image:
-    radial-gradient(rgba(124,45,58,0.05) 1px, transparent 1px),
-    linear-gradient(180deg, #f8f1e0, #f1e7cf);
-  background-size: 22px 22px, auto;
+html, body {
+  background: #0B1220;
+  color: #E5E7EB;
+  font-family: 'Calibri', 'Carlito', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  font-feature-settings: "ss01", "tnum";
 }
 
+/* Cyber backdrop: dark base + faint cyan grid + soft cyan/violet glows. */
+.parchment {
+  background:
+    radial-gradient(circle at 18% 12%, rgba(34,211,238,0.07), transparent 45%),
+    radial-gradient(circle at 82% 78%, rgba(167,139,250,0.06), transparent 45%),
+    linear-gradient(rgba(34,211,238,0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(34,211,238,0.04) 1px, transparent 1px),
+    linear-gradient(180deg, #0B1220, #0F1A33);
+  background-size: auto, auto, 32px 32px, 32px 32px, auto;
+}
+
+/* Buttons */
 .btn {
   @apply inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 font-medium transition;
+  letter-spacing: 0.01em;
 }
-.btn-primary { @apply btn bg-wine text-parchment hover:bg-wine/90; }
-.btn-ghost   { @apply btn bg-transparent border border-ink/30 hover:bg-ink/5; }
-.btn-gold    { @apply btn bg-gold text-ink hover:bg-gold/90; }
+.btn-primary {
+  @apply btn text-parchment;
+  background: #22D3EE;
+}
+.btn-primary:hover { background: #67E8F9; box-shadow: 0 0 24px -4px rgba(34,211,238,0.55); }
+.btn-primary:active { transform: translateY(1px); }
 
-.card        { @apply rounded-xl border border-ink/15 bg-white/70 backdrop-blur-sm shadow-sm; }
-.input       { @apply w-full rounded-lg border border-ink/25 bg-white/80 px-3 py-2 outline-none focus:ring-2 focus:ring-wine/40; }
-.chip        { @apply inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium; }
-.chip-wine   { @apply chip bg-wine/10 text-wine; }
-.chip-gold   { @apply chip bg-gold/20 text-ink; }
-.chip-olive  { @apply chip bg-olive/15 text-olive; }
-.chip-sky    { @apply chip bg-sky/15 text-sky; }
+.btn-ghost {
+  @apply btn bg-transparent text-ink;
+  border: 1px solid rgba(229,231,235,0.18);
+}
+.btn-ghost:hover { background: rgba(229,231,235,0.06); border-color: rgba(229,231,235,0.3); }
 
+.btn-gold {
+  @apply btn text-parchment;
+  background: #FBBF24;
+}
+.btn-gold:hover { background: #FCD34D; }
+
+/* Surfaces */
+.card {
+  background: #131C30;
+  border: 1px solid #1F2A44;
+  border-radius: 12px;
+  box-shadow: 0 1px 0 rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.02);
+}
+
+.input {
+  @apply w-full rounded-lg px-3 py-2 outline-none;
+  background: #131C30;
+  border: 1px solid #2D3957;
+  color: #E5E7EB;
+}
+.input::placeholder { color: rgba(229,231,235,0.4); }
+.input:focus { border-color: #22D3EE; box-shadow: 0 0 0 3px rgba(34,211,238,0.18); }
+
+/* Chips — small status pills */
+.chip {
+  @apply inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium;
+  letter-spacing: 0.02em;
+}
+.chip-wine  { @apply chip; background: rgba(244,114,182,0.12); color: #F9A8D4; border: 1px solid rgba(244,114,182,0.25); }
+.chip-gold  { @apply chip; background: rgba(251,191,36,0.12);  color: #FCD34D; border: 1px solid rgba(251,191,36,0.25); }
+.chip-olive { @apply chip; background: rgba(52,211,153,0.12);  color: #6EE7B7; border: 1px solid rgba(52,211,153,0.25); }
+.chip-sky   { @apply chip; background: rgba(34,211,238,0.12);  color: #67E8F9; border: 1px solid rgba(34,211,238,0.3); }
+
+/* Mastery cell — used in the teacher heatmap */
 .mastery-cell {
-  @apply h-6 w-6 rounded-md border border-ink/10;
+  @apply h-6 w-6 rounded-md;
+  border: 1px solid rgba(229,231,235,0.08);
 }
+
+/* Subtle link styling so default anchors don't look default-blue */
+a { color: inherit; }
+a:hover { color: #67E8F9; }
+
+/* Code blocks / monospace */
+code, .font-mono {
+  font-family: 'JetBrains Mono', 'SF Mono', Menlo, Consolas, monospace;
+  background: rgba(34,211,238,0.08);
+  color: #67E8F9;
+  border-radius: 4px;
+  padding: 1px 6px;
+  font-size: 0.95em;
+}
+
+/* Heading rhythm */
+h1, h2, h3 { letter-spacing: -0.01em; }
