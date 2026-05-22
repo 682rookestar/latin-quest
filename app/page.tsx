@@ -74,12 +74,19 @@ export default async function LandingPage() {
           </div>
           <p className="h-display text-sky text-xs mt-3 tracking-[0.3em]">Learn Latin · Level up</p>
 
-          <h1 className="h-display text-5xl lg:text-6xl mt-6 leading-[1.1]">
-            A gamified Latin<br />
-            <span style={{ color: "#A78BFA" }}>learning platform</span>
+          <h1 className="h-display text-4xl lg:text-5xl mt-6 leading-[1.1]">
+            Before cyber security<br />
+            <span style={{ color: "#A78BFA" }}>there was Rome.</span>
           </h1>
 
-          <p className="mt-5 text-ink/70 max-w-md text-lg">
+          <p className="h-display text-xl lg:text-2xl mt-4 leading-[1.2] text-gold" style={{ textShadow: "0 0 18px rgba(251,191,36,0.25)" }}>
+            Decrypt the empire.
+          </p>
+          <p className="h-display text-sm lg:text-base mt-3 tracking-[0.18em] text-sky">
+            2000 years of secrets &mdash; and you are the key.
+          </p>
+
+          <p className="mt-6 text-ink/70 max-w-md">
             Built around the <em className="text-gold not-italic">de Romanis</em> curriculum. Master vocab, grammar, cases, and translation through interactive exercises.
           </p>
 
