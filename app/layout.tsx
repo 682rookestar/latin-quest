@@ -39,8 +39,11 @@ export default async function RootLayout({ children }: { children: React.ReactNo
                     {displayName ?? user.email}
                     {role && <span className="ml-2 chip-wine">{role}</span>}
                   </span>
-                  <Link className="btn-ghost" href={role === "teacher" ? "/teacher" : "/learn"}>
-                    {role === "teacher" ? "Teacher dashboard" : "My learning"}
+                  <Link
+                    className="btn-ghost"
+                    href={role === "admin" ? "/admin" : role === "teacher" ? "/teacher" : "/learn"}
+                  >
+                    {role === "admin" ? "Admin" : role === "teacher" ? "Teacher dashboard" : "My learning"}
                   </Link>
                   <SignOutButton />
                 </>

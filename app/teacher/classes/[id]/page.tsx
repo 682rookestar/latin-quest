@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { rotateJoinCode } from "@/app/teacher/actions";
 
 const MASTERY_COLORS = [
   "bg-ink/5",
@@ -16,12 +17,26 @@ export default async function ClassDetail({ params }: { params: { id: string } }
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("role")
+    .eq("id", user.id)
+    .single();
+  if (profile?.role !== "teacher") redirect("/learn");
+
   const { data: klass } = await supabase
     .from("classes")
-    .select("id, name, join_code, teacher_id")
+    .select("id, name, join_code, join_code_expires_at, teacher_id, profiles!classes_teacher_id_fkey(display_name, email)")
     .eq("id", params.id)
     .single();
-  if (!klass || klass.teacher_id !== user.id) redirect("/teacher");
+  if (!klass) redirect("/teacher");
+  const isOwner = klass.teacher_id === user.id;
+  const codeExpiresAt: string | null = (klass as any).join_code_expires_at ?? null;
+  const codeExpired = codeExpiresAt ? new Date(codeExpiresAt).getTime() < Date.now() : false;
+  const ownerProfile: any = Array.isArray((klass as any).profiles)
+    ? (klass as any).profiles[0]
+    : (klass as any).profiles;
+  const ownerName = ownerProfile?.display_name ?? ownerProfile?.email ?? "Unknown";
 
   const [{ data: members }, { data: chapters }, { data: skills }, { data: progress }, { data: attempts }] = await Promise.all([
     supabase
@@ -74,12 +89,35 @@ export default async function ClassDetail({ params }: { params: { id: string } }
       <header className="flex items-start justify-between gap-3">
         <div>
           <h1 className="text-3xl font-bold">{klass.name}</h1>
-          <div className="flex items-center gap-3 mt-2">
-            <span className="chip-gold">Join code: <span className="font-mono ml-1">{klass.join_code}</span></span>
+          <div className="flex items-center gap-3 mt-2 flex-wrap">
+            <span className={`chip-gold ${codeExpired ? "opacity-60" : ""}`}>
+              Join code: <span className="font-mono ml-1">{klass.join_code}</span>
+            </span>
+            {codeExpiresAt && (
+              <span className={`text-xs ${codeExpired ? "text-wine" : "text-ink/60"}`}>
+                {codeExpired ? "expired " : "expires "}
+                {new Date(codeExpiresAt).toLocaleDateString()}
+              </span>
+            )}
             <span className="text-sm text-ink/60">{members?.length ?? 0} student{members?.length === 1 ? "" : "s"}</span>
+            {!isOwner && (
+              <span className="chip-wine">View only &middot; teacher: {ownerName}</span>
+            )}
+            {isOwner && (
+              <form action={rotateJoinCode}>
+                <input type="hidden" name="class_id" value={klass.id} />
+                <button className="btn-ghost text-xs" type="submit">
+                  Rotate code
+                </button>
+              </form>
+            )}
           </div>
           <p className="text-sm text-ink/60 mt-2">
-            Share the join code with your students &mdash; they enter it at <code>/learn/join</code>.
+            {isOwner ? (
+              <>Share the join code with your students &mdash; they enter it at <code>/learn/join</code>. Rotate it whenever you need to revoke access.</>
+            ) : (
+              <>You are viewing another teacher&apos;s class. Only {ownerName} can edit or delete it.</>
+            )}
           </p>
         </div>
         <a

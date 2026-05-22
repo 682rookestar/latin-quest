@@ -21,14 +21,22 @@ export async function GET(
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Unauthorised" }, { status: 401 });
 
-  // Verify teacher owns class
+  // Any teacher may export any class; only block non-teachers.
+  const { data: teacherProfile } = await supabase
+    .from("profiles")
+    .select("role")
+    .eq("id", user.id)
+    .single();
+  if (teacherProfile?.role !== "teacher")
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+
   const { data: klass } = await supabase
     .from("classes")
     .select("id, name, teacher_id, join_code")
     .eq("id", params.id)
     .single();
-  if (!klass || klass.teacher_id !== user.id)
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  if (!klass)
+    return NextResponse.json({ error: "Not found" }, { status: 404 });
 
   // Optional ?student=<uuid> filters to one student
   const studentFilter = req.nextUrl.searchParams.get("student");
