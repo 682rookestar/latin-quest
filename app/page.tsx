@@ -74,7 +74,7 @@ export default async function LandingPage() {
           </div>
           <p className="h-display text-sky text-xs mt-3 tracking-[0.3em]">Learn Latin · Level up</p>
 
-          <h1 className="h-display text-4xl lg:text-5xl mt-6 leading-[1.1]">
+          <h1 className="h-display text-3xl lg:text-4xl mt-6 leading-[1.15] lg:whitespace-nowrap">
             Before cyber security<br />
             <span style={{ color: "#A78BFA" }}>there was Rome.</span>
           </h1>
