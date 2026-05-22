@@ -48,10 +48,6 @@ function GlyphEagle() {
 export default async function LandingPage() {
   const supabase = createClient();
   const { data: { user } } = await supabase.auth.getUser();
-  const { data: chapters } = await supabase
-    .from("chapters")
-    .select("id, number, title, subtitle, description")
-    .order("number");
 
   const features = [
     { glyph: <GlyphBook />,   title: "de Romanis curriculum", body: "Learn through a proven, comprehensive Latin curriculum." },
@@ -84,10 +80,6 @@ export default async function LandingPage() {
           </p>
           <p className="h-display text-sm lg:text-base mt-3 tracking-[0.18em] text-sky">
             2000 years of secrets &mdash; and you are the key.
-          </p>
-
-          <p className="mt-6 text-ink/70 max-w-md">
-            Built around the <em className="text-gold not-italic">de Romanis</em> curriculum. Master vocab, grammar, cases, and translation through interactive exercises.
           </p>
 
           <div className="mt-7 flex flex-wrap gap-3">
@@ -126,49 +118,6 @@ export default async function LandingPage() {
               <p className="text-sm text-ink/60 mt-2 max-w-[18ch]">{f.body}</p>
             </div>
           ))}
-        </div>
-      </section>
-
-      {/* CHAPTERS */}
-      <section>
-        <div className="flex items-baseline justify-between mb-5">
-          <h2 className="h-display text-2xl">Chapters in Book 1: <span className="text-gold italic">dei et deae</span></h2>
-        </div>
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {chapters?.map((ch) => (
-            <div key={ch.id} className="card p-5 relative overflow-hidden">
-              <div
-                aria-hidden
-                className="absolute right-0 top-0 h-10 w-10"
-                style={{
-                  background: "linear-gradient(45deg, transparent 50%, rgba(34,211,238,0.25) 50%)",
-                }}
-              />
-              <div className="flex items-baseline justify-between relative">
-                <span className="chip-sky h-display tracking-widest text-[10px]">Chapter {ch.number}</span>
-                <span className="text-xs text-ink/50">{ch.subtitle}</span>
-              </div>
-              <h3 className="text-xl font-semibold mt-3">{ch.title}</h3>
-              <p className="text-sm text-ink/70 mt-2 min-h-[3.5rem]">{ch.description}</p>
-              <div className="xp-bar mt-4"><span style={{ width: '0%' }} /></div>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* AUDIENCES */}
-      <section className="grid md:grid-cols-2 gap-6">
-        <div className="card p-6">
-          <h3 className="h-display text-lg mb-2 text-sky">For teachers</h3>
-          <p className="text-sm text-ink/70">
-            Create classes, share a join code, lock chapters as homework, and track each student&apos;s mastery across vocab, grammar, case usage, and translation.
-          </p>
-        </div>
-        <div className="card p-6">
-          <h3 className="h-display text-lg mb-2" style={{ color: "#A78BFA" }}>For students</h3>
-          <p className="text-sm text-ink/70">
-            Ten game types — vocab matching, case and tense ID, gap-fills, preposition pictures, sentence translation, and more — all self-marking with instant feedback.
-          </p>
         </div>
       </section>
 
