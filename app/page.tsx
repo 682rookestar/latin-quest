@@ -166,12 +166,52 @@ export default async function LandingPage() {
       </section>
 
       {/* MOTTO STRIP */}
-      <section className="text-center py-12 border-t border-ink/10">
-        <div className="flex items-center justify-center gap-4 text-gold">
-          <GlyphEagle />
+      <section className="relative overflow-hidden border-t border-ink/10 mt-4 rounded-2xl">
+        {/* Colosseum backdrop */}
+        <div
+          aria-hidden
+          className="absolute inset-0 -z-10"
+          style={{
+            backgroundImage: "url('/colosseum.jpg')",
+            backgroundSize: "cover",
+            backgroundPosition: "center",
+            opacity: 0.6,
+          }}
+        />
+        {/* Dark gradient overlay to keep text readable */}
+        <div
+          aria-hidden
+          className="absolute inset-0 -z-10"
+          style={{
+            background:
+              "linear-gradient(90deg, rgba(11,18,32,0.95) 0%, rgba(11,18,32,0.65) 35%, rgba(11,18,32,0.6) 65%, rgba(11,18,32,0.95) 100%)",
+          }}
+        />
+
+        <div className="relative grid grid-cols-[auto_1fr] items-center gap-6 sm:gap-10 py-12 sm:py-16 px-6 sm:px-10">
+          {/* Aquila standard — vertical totem */}
+          <img
+            src="/aquila.png"
+            alt=""
+            aria-hidden
+            className="h-56 sm:h-72 w-auto select-none"
+            style={{ filter: "drop-shadow(0 0 18px rgba(251,191,36,0.35))" }}
+          />
+
+          {/* Motto block */}
+          <div>
+            <p
+              className="h-display text-3xl sm:text-4xl text-gold leading-tight"
+              style={{ textShadow: "0 0 18px rgba(251,191,36,0.3)" }}
+            >
+              Lingua Latina.<br />
+              Potentia Aeterna.
+            </p>
+            <p className="h-display text-xs sm:text-sm mt-4 tracking-[0.4em] text-sky">
+              The language is your power
+            </p>
+          </div>
         </div>
-        <p className="h-display text-2xl mt-5 text-gold">Lingua Latina. Potentia Aeterna.</p>
-        <p className="h-display text-xs mt-2 tracking-[0.4em] text-sky">The language is your power</p>
       </section>
     </div>
   );
