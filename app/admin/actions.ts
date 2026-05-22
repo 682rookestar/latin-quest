@@ -185,6 +185,48 @@ export async function resetTeacherPassword(
   };
 }
 
+export async function transferClassOwnership(
+  _prev: { ok: boolean; message: string } | null,
+  formData: FormData
+): Promise<{ ok: boolean; message: string }> {
+  const classId = (formData.get("class_id") as string) || "";
+  const newOwnerId = (formData.get("new_owner_id") as string) || "";
+  if (!classId || !newOwnerId) {
+    return { ok: false, message: "Pick a new owner first." };
+  }
+
+  const { supabase, user, profile } = await requireAdmin();
+  if (!user) return { ok: false, message: "You must be signed in." };
+  if (profile?.role !== "admin") {
+    return { ok: false, message: "Admin access only." };
+  }
+
+  const { error } = await supabase.rpc("transfer_class_ownership", {
+    p_class: classId,
+    p_new_owner: newOwnerId,
+  });
+  if (error) {
+    const msg = (error.message ?? "").toLowerCase();
+    if (msg.includes("new_owner_not_teacher")) {
+      return { ok: false, message: "New owner must be a teacher or admin." };
+    }
+    if (msg.includes("new_owner_not_found")) {
+      return { ok: false, message: "That user no longer exists." };
+    }
+    if (msg.includes("class_not_found")) {
+      return { ok: false, message: "Class not found." };
+    }
+    if (msg.includes("forbidden")) {
+      return { ok: false, message: "Only admins can transfer ownership." };
+    }
+    return { ok: false, message: "Could not transfer ownership." };
+  }
+
+  revalidatePath("/admin/classes");
+  revalidatePath("/teacher");
+  return { ok: true, message: "Ownership transferred." };
+}
+
 export async function revokeInvite(formData: FormData): Promise<void> {
   const id = (formData.get("id") as string) || "";
   if (!id) return;
