@@ -155,7 +155,7 @@ h1, h2, h3 { letter-spacing: -0.01em; }
     linear-gradient(135deg, rgba(34,211,238,0.18), rgba(167,139,250,0.22)),
     linear-gradient(rgba(34,211,238,0.04) 1px, transparent 1px),
     linear-gradient(90deg, rgba(34,211,238,0.04) 1px, transparent 1px),
-    url('/hero.jpg'),
+    url('/hero.png'),
     linear-gradient(180deg, #0B1220, #16203C);
   background-size: auto, 24px 24px, 24px 24px, cover, auto;
   background-position: center, center, center, center, center;

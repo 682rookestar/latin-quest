@@ -172,7 +172,7 @@ export default async function LandingPage() {
           aria-hidden
           className="absolute inset-0 -z-10"
           style={{
-            backgroundImage: "url('/colosseum.jpg')",
+            backgroundImage: "url('/colosseum.png')",
             backgroundSize: "cover",
             backgroundPosition: "center",
             opacity: 0.6,
