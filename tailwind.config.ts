@@ -29,7 +29,10 @@ const config: Config = {
         // compatible open replacement loaded from Google Fonts, then
         // system fallbacks.
         sans: ['Calibri', 'Carlito', 'system-ui', '-apple-system', 'Segoe UI', 'sans-serif'],
-        serif: ["ui-serif", "Georgia", "serif"],
+        // Cinzel: Roman-inscription-inspired display face for all-caps
+        // headings on the marketing surfaces. Body stays Calibri.
+        display: ['Cinzel', 'ui-serif', 'Georgia', 'serif'],
+        serif: ['ui-serif', 'Georgia', 'serif'],
       },
       boxShadow: {
         glow: "0 0 0 1px rgba(34,211,238,0.4), 0 0 24px -4px rgba(34,211,238,0.35)",

@@ -33,7 +33,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
                 className="inline-flex h-7 w-7 items-center justify-center rounded-md text-parchment font-bold"
                 style={{ background: "#22D3EE", boxShadow: "0 0 16px -4px rgba(34,211,238,0.6)" }}
               >LQ</span>
-              <span className="font-bold tracking-wide group-hover:text-sky transition">Latin Quest</span>
+              <span className="h-display tracking-wide group-hover:text-sky transition text-lg">Latin Quest</span>
               <span className="chip-sky ml-2">de Romanis</span>
             </Link>
             <div className="flex items-center gap-3 text-sm">

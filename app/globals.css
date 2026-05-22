@@ -1,6 +1,8 @@
 /* Carlito is a metric-compatible, open replacement for Calibri.
-   Browsers that don't have Calibri installed fall through to it. */
-@import url('https://fonts.googleapis.com/css2?family=Carlito:wght@400;700&display=swap');
+   Browsers that don't have Calibri installed fall through to it.
+   Cinzel is the all-caps display face for headings on marketing
+   surfaces (Roman-inscription feel). */
+@import url('https://fonts.googleapis.com/css2?family=Carlito:wght@400;700&family=Cinzel:wght@400;500;700&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -99,3 +101,98 @@ code, .font-mono {
 
 /* Heading rhythm */
 h1, h2, h3 { letter-spacing: -0.01em; }
+
+/* ---------- Cyber-Roman marketing helpers ---------- */
+
+/* Octagonal HUD frame. Two-layer clip-path: outer = 1px coloured
+   border, inner = dark fill. Use as: <div class="hex-frame">…</div>.
+   --hex-color customises the border colour (default cyan). */
+.hex-frame {
+  --hex-color: #22D3EE;
+  --hex-bg: #131C30;
+  background: var(--hex-color);
+  clip-path: polygon(
+    16px 0, calc(100% - 16px) 0,
+    100% 16px, 100% calc(100% - 16px),
+    calc(100% - 16px) 100%, 16px 100%,
+    0 calc(100% - 16px), 0 16px
+  );
+  padding: 1px;
+}
+.hex-frame > * {
+  background: var(--hex-bg);
+  clip-path: polygon(
+    16px 0, calc(100% - 16px) 0,
+    100% 16px, 100% calc(100% - 16px),
+    calc(100% - 16px) 100%, 16px 100%,
+    0 calc(100% - 16px), 0 16px
+  );
+}
+.hex-purple { --hex-color: #A78BFA; }
+.hex-gold   { --hex-color: #FBBF24; }
+
+/* Hexagonal feature tile -- like the four icons in the mockup. */
+.hex-tile {
+  --hex-color: rgba(34,211,238,0.4);
+  --hex-bg: #131C30;
+  width: 96px; height: 110px;
+  background: var(--hex-color);
+  clip-path: polygon(50% 0, 100% 25%, 100% 75%, 50% 100%, 0 75%, 0 25%);
+  padding: 1px;
+  display: flex; align-items: center; justify-content: center;
+}
+.hex-tile > * {
+  width: 100%; height: 100%;
+  background: var(--hex-bg);
+  clip-path: polygon(50% 0, 100% 25%, 100% 75%, 50% 100%, 0 75%, 0 25%);
+  display: flex; align-items: center; justify-content: center;
+}
+
+/* Hero image slot. Drop the file at /public/hero.jpg. If it's
+   missing, a cyan→purple gradient + faint grid stands in. */
+.hero-image {
+  background:
+    linear-gradient(135deg, rgba(34,211,238,0.18), rgba(167,139,250,0.22)),
+    linear-gradient(rgba(34,211,238,0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(34,211,238,0.04) 1px, transparent 1px),
+    url('/hero.jpg'),
+    linear-gradient(180deg, #0B1220, #16203C);
+  background-size: auto, 24px 24px, 24px 24px, cover, auto;
+  background-position: center, center, center, center, center;
+  background-repeat: no-repeat, repeat, repeat, no-repeat, no-repeat;
+}
+
+/* The big hex CTA button as in the mockup ("BEGIN YOUR LEGION"). */
+.cta-hex {
+  display: inline-flex; align-items: center; gap: 12px;
+  padding: 14px 28px;
+  font-family: 'Cinzel', ui-serif, serif;
+  letter-spacing: 0.14em; font-weight: 500;
+  color: #E5E7EB; background: linear-gradient(135deg, #1E1A3B, #2A1F4E);
+  clip-path: polygon(
+    14px 0, calc(100% - 14px) 0,
+    100% 50%, calc(100% - 14px) 100%,
+    14px 100%, 0 50%
+  );
+  border: none; cursor: pointer;
+  transition: filter 0.2s, transform 0.15s;
+  box-shadow: 0 0 18px -4px rgba(167,139,250,0.55);
+}
+.cta-hex:hover { filter: brightness(1.2); }
+.cta-hex:active { transform: scale(0.98); }
+
+/* HUD progress bar (used in chapter cards). */
+.xp-bar {
+  height: 6px; background: rgba(229,231,235,0.08);
+  border-radius: 999px; overflow: hidden;
+}
+.xp-bar > span {
+  display: block; height: 100%;
+  background: linear-gradient(90deg, #22D3EE, #A78BFA);
+}
+
+/* All-caps Cinzel utility */
+.h-display {
+  font-family: 'Cinzel', ui-serif, serif;
+  text-transform: uppercase; letter-spacing: 0.06em; font-weight: 500;
+}
