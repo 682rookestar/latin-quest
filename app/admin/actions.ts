@@ -76,10 +76,20 @@ export async function inviteTeacher(
     };
   }
 
-  const actionLink =
-    (linkData as any)?.properties?.action_link ??
-    (linkData as any)?.action_link ??
+  // Supabase's default action_link points at /auth/v1/verify on the
+  // supabase.co domain, which can't set a session cookie on our app
+  // origin. We instead construct a link to our own /auth/confirm
+  // route handler using the hashed_token Supabase returned. Our route
+  // calls verifyOtp() server-side and sets the session cookie on
+  // latin-quest.vercel.app, then redirects to ?next=.
+  const hashedToken =
+    (linkData as any)?.properties?.hashed_token ??
+    (linkData as any)?.hashed_token ??
     null;
+  const actionLink =
+    hashedToken && origin
+      ? `${origin}/auth/confirm?token_hash=${encodeURIComponent(hashedToken)}&type=invite&next=/dashboard`
+      : ((linkData as any)?.properties?.action_link ?? null);
 
   // 3. Persist the link so the UI can offer a copy fallback if the
   // teacher's email scanner kills the message before they can click.
