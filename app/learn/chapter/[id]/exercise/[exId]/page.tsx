@@ -80,18 +80,41 @@ export default async function ExercisePage({
       .eq("exercise_id", params.exId)
       .order("position");
 
-    // Shuffle the question order on every attempt so the same exercise
-    // feels fresh on replay. The question set is unchanged -- only the
-    // sequence varies -- so it's safe for grade-marking and stays simple
-    // for teachers to discuss in class.
     const list = [...(own ?? [])];
-    for (let i = list.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [list[i], list[j]] = [list[j], list[i]];
+
+    // Look up this student's prior history on these specific questions
+    // so we can put their weak spots first. attempt_answers has no
+    // student_id, so we filter through the attempts FK.
+    const questionIds = list.map((q: any) => q.id);
+    const history: Record<string, { right: number; wrong: number }> = {};
+    if (questionIds.length > 0) {
+      const { data: prev } = await supabase
+        .from("attempt_answers")
+        .select("question_id, is_correct, attempts!inner(student_id)")
+        .in("question_id", questionIds)
+        .eq("attempts.student_id", user.id);
+      for (const a of (prev ?? []) as any[]) {
+        const h = (history[a.question_id] ??= { right: 0, wrong: 0 });
+        if (a.is_correct) h.right += 1; else h.wrong += 1;
+      }
     }
+
+    // Score = (#wrong) - (#right). Higher score = needs more practice.
+    //   never seen     -> 0
+    //   always wrong   -> +N
+    //   always right   -> -N
+    //   half-and-half  -> ~0
+    // Sort descending; ties broken randomly so the order still feels
+    // fresh between attempts.
+    const scored = list.map((q: any) => {
+      const h = history[q.id] ?? { right: 0, wrong: 0 };
+      return { q, score: h.wrong - h.right, jitter: Math.random() };
+    });
+    scored.sort((a, b) => (b.score - a.score) || (a.jitter - b.jitter));
+
     // Re-stamp position so the runner's "Question N of M" counter
-    // numbers them in the new (shuffled) order.
-    questions = list.map((q, idx) => ({ ...q, position: idx + 1 }));
+    // numbers them in the new (priority) order.
+    questions = scored.map((s, idx) => ({ ...s.q, position: idx + 1 }));
   }
 
   return (
