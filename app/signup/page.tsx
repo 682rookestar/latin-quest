@@ -9,16 +9,34 @@ export default function SignupPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [displayName, setDisplayName] = useState("");
+  const [code, setCode] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
-    setLoading(true); setError(null);
+    setLoading(true);
+    setError(null);
+
     const supabase = createClient();
-    // Role is decided server-side: students by default, teachers only
-    // via an admin-issued invite that handle_new_user honours by email.
-    const { error } = await supabase.auth.signUp({
+
+    // 1. Validate the join code BEFORE creating an auth user. This is
+    // what stops random internet visitors from registering -- no valid
+    // code, no account.
+    const cleanCode = code.replace(/\s+/g, "").toUpperCase();
+    const { data: cls, error: codeError } = await supabase
+      .rpc("validate_join_code", { p_code: cleanCode })
+      .maybeSingle();
+    if (codeError || !cls) {
+      setLoading(false);
+      setError("That join code isn't valid or has expired. Ask your teacher for the latest one.");
+      return;
+    }
+
+    // 2. Code is good. Create the auth user. Role is decided server-
+    // side: trigger handle_new_user always provisions students (the
+    // raw_user_meta_data.role field is ignored).
+    const { error: signUpError } = await supabase.auth.signUp({
       email,
       password,
       options: {
@@ -26,8 +44,26 @@ export default function SignupPage() {
         emailRedirectTo: typeof window !== "undefined" ? `${window.location.origin}/dashboard` : undefined,
       },
     });
+    if (signUpError) {
+      setLoading(false);
+      setError(signUpError.message);
+      return;
+    }
+
+    // 3. Auto-enrol them in the class they just typed the code for.
+    // The signUp call has already set their session cookies, so this
+    // RPC runs as the new student.
+    const { error: enrolError } = await supabase
+      .rpc("join_class_by_code", { p_code: cleanCode })
+      .maybeSingle();
     setLoading(false);
-    if (error) { setError(error.message); return; }
+    if (enrolError) {
+      // Account exists but enrolment failed -- they can still try
+      // from /learn/join. Show a soft warning rather than blocking.
+      router.push("/learn/join?error=enrol_failed");
+      return;
+    }
+
     router.push("/dashboard");
     router.refresh();
   }
@@ -40,9 +76,19 @@ export default function SignupPage() {
           <p className="h-display text-sky text-xs tracking-[0.3em] mb-3">Begin your legion</p>
           <h1 className="h-display text-3xl">Create a student account</h1>
           <p className="text-sm text-ink/60 mb-6">
-            Sign up to join a class. You&apos;ll need a join code from your teacher to enrol.
+            Enter the join code your teacher gave you to sign up.
           </p>
           <form onSubmit={submit} className="space-y-4">
+            <input
+              className="input uppercase tracking-widest text-center text-lg font-mono"
+              name="code"
+              placeholder="join code"
+              value={code}
+              onChange={(e) => setCode(e.target.value)}
+              maxLength={12}
+              required
+              autoComplete="off"
+            />
             <input className="input" placeholder="full name"     value={displayName} onChange={e=>setDisplayName(e.target.value)} required />
             <input className="input" type="email" placeholder="email" value={email} onChange={e=>setEmail(e.target.value)} required />
             <input className="input" type="password" placeholder="password (min 6 chars)" value={password} onChange={e=>setPassword(e.target.value)} required minLength={6} />
@@ -53,7 +99,7 @@ export default function SignupPage() {
             Already have an account? <Link className="underline" href="/login">Sign in</Link>
           </p>
           <p className="text-xs text-ink/50 mt-2">
-            Teachers are added by an administrator &mdash; if you&apos;re a teacher, ask your admin to send you an invite.
+            Don&apos;t have a join code? Ask your teacher &mdash; or, if you&apos;re a teacher yourself, ask your admin to send you an invite.
           </p>
         </div>
       </div>
