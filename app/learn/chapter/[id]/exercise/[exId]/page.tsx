@@ -79,7 +79,19 @@ export default async function ExercisePage({
       .select("*")
       .eq("exercise_id", params.exId)
       .order("position");
-    questions = own ?? [];
+
+    // Shuffle the question order on every attempt so the same exercise
+    // feels fresh on replay. The question set is unchanged -- only the
+    // sequence varies -- so it's safe for grade-marking and stays simple
+    // for teachers to discuss in class.
+    const list = [...(own ?? [])];
+    for (let i = list.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [list[i], list[j]] = [list[j], list[i]];
+    }
+    // Re-stamp position so the runner's "Question N of M" counter
+    // numbers them in the new (shuffled) order.
+    questions = list.map((q, idx) => ({ ...q, position: idx + 1 }));
   }
 
   return (
