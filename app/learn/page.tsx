@@ -12,13 +12,16 @@ export default async function LearnHome({
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  const [{ data: profile }, { data: memberships }, { data: chapters }, { data: progress }, { data: lockedRows }] = await Promise.all([
+  const [{ data: profile }, { data: memberships }, { data: chapters }, { data: progress }, { data: lockedRows }, { data: badges }] = await Promise.all([
     supabase.from("profiles").select("display_name, role").eq("id", user.id).single(),
     supabase.from("class_members").select("classes(id, name, join_code)").eq("student_id", user.id),
     supabase.from("chapters").select("id, number, title, subtitle, description").order("number"),
     supabase.from("skill_progress").select("chapter_id, mastery").eq("student_id", user.id),
     supabase.rpc("locked_chapters_for_me"),
+    supabase.from("chapter_badges").select("chapter_id").eq("student_id", user.id),
   ]);
+
+  const earnedBadges = new Set(((badges as any[]) ?? []).map((b) => b.chapter_id));
 
   const lockedChapterIds = new Set(
     ((lockedRows as any[]) ?? []).map((r) => r.chapter_id)
@@ -70,6 +73,7 @@ export default async function LearnHome({
             const a = chapterAvg[ch.id];
             const m = a ? Math.round((a.sum / a.n) * 10) / 10 : 0;
             const locked = lockedChapterIds.has(ch.id);
+            const hasBadge = earnedBadges.has(ch.id);
 
             const inner = (
               <>
@@ -77,6 +81,8 @@ export default async function LearnHome({
                   <span className="chip-wine">Chapter {ch.number}</span>
                   {locked ? (
                     <span className="text-xs text-wine">🔒 Locked by your teacher</span>
+                  ) : hasBadge ? (
+                    <span className="text-xs text-gold" title="Chapter mastered">🎖 Mastered</span>
                   ) : (
                     <span className="text-xs text-ink/60">mastery {m}/5</span>
                   )}
@@ -84,7 +90,10 @@ export default async function LearnHome({
                 <h3 className="text-lg font-semibold mt-2">{ch.title}</h3>
                 <p className="text-sm text-ink/70 mt-1 line-clamp-2">{ch.description}</p>
                 <div className="mt-3 h-1.5 bg-ink/10 rounded">
-                  <div className="h-1.5 bg-olive rounded" style={{ width: `${(m/5)*100}%` }} />
+                  <div
+                    className={`h-1.5 rounded ${hasBadge ? "bg-gold" : "bg-olive"}`}
+                    style={{ width: `${(m/5)*100}%` }}
+                  />
                 </div>
               </>
             );

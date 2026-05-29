@@ -21,15 +21,37 @@ function eqLoose(student: string, correct: string): boolean {
   return strip(student) === strip(correct);
 }
 
+// Reduce a word to an approximate stem by stripping common English suffixes.
+// Handles walks/walking/walked, runs/running, etc. without a full NLP library.
+function stemWord(w: string): string {
+  return w
+    .replace(/(?:ing|tion|ness|ment)$/, "")
+    .replace(/(?:ed|er|est|ly)$/, "")
+    .replace(/es$/, "")
+    .replace(/s$/, "")
+    .replace(/e$/, "");
+}
+
 function translationOk(student: string, correct: string): boolean {
   const a = strip(student);
   const b = strip(correct);
   if (!a) return false;
   if (a === b) return true;
-  const need = b.split(" ").filter((w) => w.length > 3);
-  const got = new Set(a.split(" "));
-  const hits = need.filter((w) => got.has(w)).length;
-  return need.length > 0 && hits / need.length >= 0.7;
+
+  const studentWords = a.split(" ");
+  const correctKeywords = b.split(" ").filter((w) => w.length > 3);
+
+  // Must be at least half the length of the expected answer (stops single-word tricks).
+  if (studentWords.length < Math.ceil(correctKeywords.length * 0.5)) return false;
+
+  // Must have reasonable word variety (stops "the the the the" tricks).
+  const uniqueRatio = new Set(studentWords).size / studentWords.length;
+  if (studentWords.length > 3 && uniqueRatio < 0.6) return false;
+
+  // Stem-match keywords so "walks"/"walking"/"walked" all match each other.
+  const studentStems = new Set(studentWords.map(stemWord));
+  const hits = correctKeywords.filter((w) => studentStems.has(stemWord(w))).length;
+  return correctKeywords.length > 0 && hits / correctKeywords.length >= 0.8;
 }
 
 export default function ExerciseRunner({
@@ -48,6 +70,7 @@ export default function ExerciseRunner({
   const [results, setResults] = useState<{ correct: boolean; student: string }[]>([]);
   const [done, setDone] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [newBadge, setNewBadge] = useState(false);
 
   const q = questions[i];
   // Boss rounds carry the source game type per-question via metadata.__game_type.
@@ -145,6 +168,35 @@ export default function ExerciseRunner({
       });
     }
 
+    // Check for chapter badge: award if avg mastery >= 4 and not already earned.
+    const { data: progressRows } = await supabase
+      .from("skill_progress")
+      .select("mastery")
+      .eq("student_id", user.id)
+      .eq("chapter_id", exercise.chapter_id);
+
+    if (progressRows && progressRows.length > 0) {
+      const avg =
+        (progressRows as any[]).reduce((sum: number, p: any) => sum + p.mastery, 0) /
+        progressRows.length;
+
+      if (avg >= 4) {
+        const { data: existing } = await supabase
+          .from("chapter_badges")
+          .select("id")
+          .eq("student_id", user.id)
+          .eq("chapter_id", exercise.chapter_id)
+          .maybeSingle();
+
+        if (!existing) {
+          await supabase
+            .from("chapter_badges")
+            .insert({ student_id: user.id, chapter_id: exercise.chapter_id });
+          setNewBadge(true);
+        }
+      }
+    }
+
     setSaving(false);
     router.refresh();
   }
@@ -163,10 +215,15 @@ export default function ExerciseRunner({
     const pct = Math.round((correctN / results.length) * 100);
     return (
       <div className="max-w-2xl mx-auto card p-8 text-center">
-        <div className="text-6xl mb-3">{pct >= 80 ? "trophy" : pct >= 50 ? "leaf" : "scroll"}</div>
+        <div className="text-6xl mb-3">{pct >= 80 ? "🏆" : pct >= 50 ? "🌿" : "📜"}</div>
         <h2 className="text-2xl font-bold">{pct}%</h2>
         <p className="text-ink/70 mt-1">{correctN} of {results.length} correct</p>
         {saving && <p className="text-xs text-ink/50 mt-2">saving progress...</p>}
+        {newBadge && (
+          <div className="mt-4 rounded-lg border border-gold/40 bg-gold/10 px-4 py-3 text-sm text-gold">
+            🎖 <span className="font-semibold">Chapter badge earned!</span> You've mastered this chapter.
+          </div>
+        )}
         <div className="flex gap-2 justify-center mt-6">
           <button
             className="btn-primary"
