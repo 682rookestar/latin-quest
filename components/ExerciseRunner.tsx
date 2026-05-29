@@ -5,6 +5,22 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import type { Exercise, ExerciseQuestion, GameType } from "@/lib/types";
 
+// Sanitize SVG markup to prevent XSS.
+// Removes <script> blocks, event-handler attributes (on*),
+// javascript: URLs, and <foreignObject> (arbitrary HTML embedding).
+function sanitizeSVG(svg: string): string {
+  return svg
+    .replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, "")
+    .replace(/<script\b[^>]*\/>/gi, "")
+    .replace(/<foreignObject\b[\s\S]*?<\/foreignObject>/gi, "")
+    .replace(/<foreignObject\b[^>]*\/>/gi, "")
+    .replace(/\s+on\w+\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]*)/gi, "")
+    .replace(
+      /(href|src|action|xlink:href)\s*=\s*(["'])\s*javascript:[^"']*/gi,
+      '$1=$2#'
+    );
+}
+
 // Strip Latin macrons / diacritics for lenient comparison.
 // Uses ̀-ͯ (combining diacritical marks block) for portability.
 function strip(s: string): string {
@@ -168,34 +184,12 @@ export default function ExerciseRunner({
       });
     }
 
-    // Check for chapter badge: award if avg mastery >= 4 and not already earned.
-    const { data: progressRows } = await supabase
-      .from("skill_progress")
-      .select("mastery")
-      .eq("student_id", user.id)
-      .eq("chapter_id", exercise.chapter_id);
-
-    if (progressRows && progressRows.length > 0) {
-      const avg =
-        (progressRows as any[]).reduce((sum: number, p: any) => sum + p.mastery, 0) /
-        progressRows.length;
-
-      if (avg >= 4) {
-        const { data: existing } = await supabase
-          .from("chapter_badges")
-          .select("id")
-          .eq("student_id", user.id)
-          .eq("chapter_id", exercise.chapter_id)
-          .maybeSingle();
-
-        if (!existing) {
-          await supabase
-            .from("chapter_badges")
-            .insert({ student_id: user.id, chapter_id: exercise.chapter_id });
-          setNewBadge(true);
-        }
-      }
-    }
+    // Award chapter badge if mastery threshold is met.
+    // Logic lives in a security-definer RPC so the threshold
+    // cannot be bypassed via direct API calls.
+    const { data: badgeAwarded } = await supabase
+      .rpc("award_chapter_badge_if_earned", { p_chapter: exercise.chapter_id });
+    if (badgeAwarded) setNewBadge(true);
 
     setSaving(false);
     router.refresh();
@@ -392,7 +386,7 @@ function QuestionView({
           <div className="mt-3 flex justify-center">
             <div
               className="rounded-lg p-3 border border-ink/10"
-              dangerouslySetInnerHTML={{ __html: md.svg }}
+              dangerouslySetInnerHTML={{ __html: sanitizeSVG(md.svg) }}
               style={{ background: "#E5E7EB", color: "#0B1220" }}
             />
           </div>
