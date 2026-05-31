@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import PageHero from "@/components/PageHero";
+import ChapterStandard from "@/components/ChapterStandard";
 
 export default async function LearnHome({
   searchParams,
@@ -12,27 +13,33 @@ export default async function LearnHome({
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  const [{ data: profile }, { data: memberships }, { data: chapters }, { data: progress }, { data: lockedRows }, { data: badges }] = await Promise.all([
+  const [
+    { data: profile },
+    { data: memberships },
+    { data: chapters },
+    { data: lockedRows },
+    { data: standardProgress },
+  ] = await Promise.all([
     supabase.from("profiles").select("display_name, role").eq("id", user.id).single(),
     supabase.from("class_members").select("classes(id, name, join_code)").eq("student_id", user.id),
     supabase.from("chapters").select("id, number, title, subtitle, description").order("number"),
-    supabase.from("skill_progress").select("chapter_id, mastery").eq("student_id", user.id),
     supabase.rpc("locked_chapters_for_me"),
-    supabase.from("chapter_badges").select("chapter_id").eq("student_id", user.id),
+    supabase.rpc("get_standard_progress"),
   ]);
-
-  const earnedBadges = new Set(((badges as any[]) ?? []).map((b) => b.chapter_id));
 
   const lockedChapterIds = new Set(
     ((lockedRows as any[]) ?? []).map((r) => r.chapter_id)
   );
 
-  // Per-chapter avg mastery (0–5)
-  const chapterAvg: Record<string, { sum: number; n: number }> = {};
-  for (const p of (progress ?? []) as any[]) {
-    chapterAvg[p.chapter_id] ??= { sum: 0, n: 0 };
-    chapterAvg[p.chapter_id].sum += p.mastery;
-    chapterAvg[p.chapter_id].n += 1;
+  // Build a lookup map: chapter_id → progress row
+  const progressMap: Record<string, {
+    chapter_number: number;
+    total_topics: number;
+    passed_topics: number;
+    badge_earned: boolean;
+  }> = {};
+  for (const row of ((standardProgress as any[]) ?? [])) {
+    progressMap[row.chapter_id] = row;
   }
 
   return (
@@ -55,7 +62,7 @@ export default async function LearnHome({
           <p className="text-sm text-ink/60">You haven't joined any classes yet.</p>
         ) : (
           <ul className="text-sm space-y-1">
-            {memberships.map((m:any)=>(
+            {memberships.map((m: any) => (
               <li key={m.classes.id}>
                 <span className="chip-gold mr-2">{m.classes.join_code}</span>
                 {m.classes.name}
@@ -69,33 +76,52 @@ export default async function LearnHome({
       <section>
         <h2 className="h-display text-2xl mb-4">Chapters</h2>
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {chapters?.map((ch:any)=>{
-            const a = chapterAvg[ch.id];
-            const m = a ? Math.round((a.sum / a.n) * 10) / 10 : 0;
+          {chapters?.map((ch: any) => {
+            const p = progressMap[ch.id];
+            const totalTopics  = p?.total_topics  ?? 0;
+            const passedTopics = p?.passed_topics ?? 0;
+            const badgeEarned  = p?.badge_earned  ?? false;
             const locked = lockedChapterIds.has(ch.id);
-            const hasBadge = earnedBadges.has(ch.id);
 
             const inner = (
-              <>
-                <div className="flex items-baseline justify-between">
-                  <span className="chip-wine">Chapter {ch.number}</span>
-                  {locked ? (
-                    <span className="text-xs text-wine">🔒 Locked by your teacher</span>
-                  ) : hasBadge ? (
-                    <span className="text-xs text-gold" title="Chapter mastered">🎖 Mastered</span>
-                  ) : (
-                    <span className="text-xs text-ink/60">mastery {m}/5</span>
-                  )}
-                </div>
-                <h3 className="text-lg font-semibold mt-2">{ch.title}</h3>
-                <p className="text-sm text-ink/70 mt-1 line-clamp-2">{ch.description}</p>
-                <div className="mt-3 h-1.5 bg-ink/10 rounded">
-                  <div
-                    className={`h-1.5 rounded ${hasBadge ? "bg-gold" : "bg-olive"}`}
-                    style={{ width: `${(m/5)*100}%` }}
+              <div className="flex gap-4 items-start">
+                {/* Roman standard */}
+                <div className="flex-shrink-0 flex flex-col items-center pt-1">
+                  <ChapterStandard
+                    chapterNumber={ch.number}
+                    totalTopics={totalTopics}
+                    passedTopics={passedTopics}
+                    badgeEarned={badgeEarned}
+                    size={80}
                   />
                 </div>
-              </>
+
+                {/* Chapter info */}
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-baseline justify-between gap-2">
+                    <span className="chip-wine">Chapter {ch.number}</span>
+                    {locked ? (
+                      <span className="text-xs text-wine">🔒 Locked</span>
+                    ) : badgeEarned ? (
+                      <span className="text-xs text-gold" title="All topics mastered">🎖 Mastered</span>
+                    ) : totalTopics > 0 ? (
+                      <span className="text-xs text-ink/60">{passedTopics}/{totalTopics} topics</span>
+                    ) : null}
+                  </div>
+                  <h3 className="text-lg font-semibold mt-2 leading-tight">{ch.title}</h3>
+                  <p className="text-sm text-ink/70 mt-1 line-clamp-2">{ch.description}</p>
+
+                  {/* Progress bar */}
+                  {totalTopics > 0 && (
+                    <div className="mt-3 h-1.5 bg-ink/10 rounded">
+                      <div
+                        className={`h-1.5 rounded transition-all ${badgeEarned ? "bg-gold" : "bg-olive"}`}
+                        style={{ width: `${(passedTopics / totalTopics) * 100}%` }}
+                      />
+                    </div>
+                  )}
+                </div>
+              </div>
             );
 
             return locked ? (
@@ -108,7 +134,11 @@ export default async function LearnHome({
                 {inner}
               </div>
             ) : (
-              <Link key={ch.id} href={`/learn/chapter/${ch.id}`} className="card p-5 hover:shadow-md transition block">
+              <Link
+                key={ch.id}
+                href={`/learn/chapter/${ch.id}`}
+                className="card p-5 hover:shadow-md transition block"
+              >
                 {inner}
               </Link>
             );
