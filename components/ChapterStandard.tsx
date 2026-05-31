@@ -24,7 +24,7 @@ const TOTEM_BY_CHAPTER: Record<number, string> = {
   3: "/Boar.png",
   4: "/Aper.png",
   5: "/Capricornus.png",
-  6: "/aquila.png",
+  6: "/eagle.png",
 };
 
 interface Props {

@@ -92,7 +92,7 @@ export default async function LearnHome({
                     totalTopics={totalTopics}
                     passedTopics={passedTopics}
                     badgeEarned={badgeEarned}
-                    size={80}
+                    size={130}
                   />
                 </div>
 
