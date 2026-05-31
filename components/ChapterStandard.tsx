@@ -47,32 +47,32 @@ export default function ChapterStandard({
 
   // Layout constants (all relative to a 100-unit wide canvas)
   const W = 100;
-  const poleX = W / 2;          // centre x
-  const poleTop = 28;            // where pole starts (below totem)
-  const poleBottom = 96;         // above the spike tip
+  const poleX = W / 2;
   const poleWidth = 5;
 
-  // Totem sits above the pole
+  // Totem
   const totemSize = 28;
   const totemY = 0;
+  const poleTop = 28; // pole starts just below totem
 
-  // Phalerae — stacked discs below the totem, above the plaque
+  // Phalerae — compress spacing when there are many discs
   const maxDiscs = Math.max(totalTopics, 1);
   const discR = 7;
-  const discSpacing = 16;
+  const discSpacing = maxDiscs > 5 ? 13 : 16;
   const discStartY = poleTop + 8;
 
-  // Crimson plaque
+  // Crimson plaque — positioned dynamically below last disc
   const plaqueW = 34;
   const plaqueH = 14;
-  const plaqueY = discStartY + maxDiscs * discSpacing + 2;
+  const plaqueY = discStartY + maxDiscs * discSpacing + 4;
 
   // Crossbar
   const crossbarY = poleTop + 2;
   const crossbarHalf = 18;
   const crossbarThick = 3;
 
-  // Full SVG height
+  // Spike + total height derived from plaque position
+  const poleBottom = plaqueY + plaqueH + 6;
   const svgH = poleBottom + 10;
 
   // Scale factor for rendering
