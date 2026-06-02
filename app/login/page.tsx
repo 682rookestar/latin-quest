@@ -37,7 +37,7 @@ export default function LoginPage() {
         aria-hidden
         className="absolute inset-0"
         style={{
-          backgroundImage: "url('/hero.png')",
+          backgroundImage: "url('/signin.png')",
           backgroundSize: "cover",
           backgroundPosition: "center",
         }}
