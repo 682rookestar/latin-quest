@@ -10,7 +10,7 @@ function Emblem({ src, alt }: { src: string; alt: string }) {
       width={110}
       height={110}
       className="select-none"
-      style={{ mixBlendMode: "screen", filter: "drop-shadow(0 0 8px rgba(201,151,10,0.3))" }}
+      style={{ mixBlendMode: "screen" }}
     />
   );
 }
