@@ -93,7 +93,7 @@ export default async function LandingPage() {
           </p>
 
           <h1 className="h-display leading-[1.1]">
-            <span className="block text-4xl sm:text-5xl lg:text-6xl text-parchment">
+            <span className="block text-4xl sm:text-5xl lg:text-6xl text-white">
               Before Cyber<br />Security
             </span>
             <span
@@ -138,7 +138,7 @@ export default async function LandingPage() {
           {features.map((f) => (
             <div key={f.title} className="flex flex-col items-center text-center">
               <div className="mb-4">{f.emblem}</div>
-              <h3 className="h-display text-sm text-parchment leading-snug">{f.title}</h3>
+              <h3 className="h-display text-sm text-white leading-snug">{f.title}</h3>
               <p className="text-sm text-ink/60 mt-2 max-w-[20ch] leading-relaxed">{f.body}</p>
               <Link
                 href={f.link}
@@ -196,7 +196,7 @@ export default async function LandingPage() {
             </p>
             <Link
               href={user ? "/learn" : "/signup"}
-              className="inline-flex items-center gap-3 mt-6 h-display text-xs tracking-[0.2em] text-parchment border border-gold/40 px-6 py-3 rounded hover:bg-gold/10 transition-colors"
+              className="inline-flex items-center gap-3 mt-6 h-display text-xs tracking-[0.2em] text-white border border-gold/40 px-6 py-3 rounded hover:bg-gold/10 transition-colors"
             >
               Join the Legion →
             </Link>
