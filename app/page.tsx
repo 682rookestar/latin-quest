@@ -176,7 +176,7 @@ export default async function LandingPage() {
         <div className="relative grid grid-cols-[auto_1fr] items-center gap-8 sm:gap-12 py-14 sm:py-20 px-6 sm:px-12">
           {/* Eagle standard */}
           <img
-            src="/eagle.png"
+            src="/aquila.png"
             alt=""
             aria-hidden
             className="h-52 sm:h-64 w-auto select-none"
