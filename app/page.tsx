@@ -1,82 +1,17 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 
-// Circular laurel-wreath emblem SVGs for the four feature tiles
-function EmblemTemple() {
+// Real emblem images — drop these in /public/ to replace placeholders
+function Emblem({ src, alt }: { src: string; alt: string }) {
   return (
-    <svg viewBox="0 0 80 80" width="80" height="80" aria-hidden fill="none">
-      <circle cx="40" cy="40" r="38" stroke="#C9970A" strokeWidth="1" opacity="0.4" />
-      {/* Laurel left */}
-      <path d="M12 40 C10 32 15 24 20 22 C18 28 16 34 17 40" stroke="#C9970A" strokeWidth="1.2" fill="none" opacity="0.9" />
-      <path d="M13 35 C11 28 17 21 22 20 C20 26 17 31 18 36" stroke="#C9970A" strokeWidth="1" fill="none" opacity="0.7" />
-      <path d="M12 40 C10 48 15 56 20 58 C18 52 16 46 17 40" stroke="#C9970A" strokeWidth="1.2" fill="none" opacity="0.9" />
-      {/* Laurel right */}
-      <path d="M68 40 C70 32 65 24 60 22 C62 28 64 34 63 40" stroke="#C9970A" strokeWidth="1.2" fill="none" opacity="0.9" />
-      <path d="M67 35 C69 28 63 21 58 20 C60 26 63 31 62 36" stroke="#C9970A" strokeWidth="1" fill="none" opacity="0.7" />
-      <path d="M68 40 C70 48 65 56 60 58 C62 52 64 46 63 40" stroke="#C9970A" strokeWidth="1.2" fill="none" opacity="0.9" />
-      {/* Ribbon at bottom */}
-      <path d="M32 62 Q40 66 48 62" stroke="#C9970A" strokeWidth="1" fill="none" opacity="0.8" />
-      {/* Temple icon */}
-      <rect x="28" y="34" width="24" height="14" stroke="#C9970A" strokeWidth="1.5" fill="none" />
-      <line x1="32" y1="34" x2="32" y2="48" stroke="#C9970A" strokeWidth="1" />
-      <line x1="37" y1="34" x2="37" y2="48" stroke="#C9970A" strokeWidth="1" />
-      <line x1="43" y1="34" x2="43" y2="48" stroke="#C9970A" strokeWidth="1" />
-      <line x1="48" y1="34" x2="48" y2="48" stroke="#C9970A" strokeWidth="1" />
-      <rect x="26" y="31" width="28" height="3" fill="#C9970A" opacity="0.8" />
-      <line x1="28" y1="48" x2="52" y2="48" stroke="#C9970A" strokeWidth="1.5" />
-    </svg>
-  );
-}
-
-function EmblemSwords() {
-  return (
-    <svg viewBox="0 0 80 80" width="80" height="80" aria-hidden fill="none">
-      <circle cx="40" cy="40" r="38" stroke="#C9970A" strokeWidth="1" opacity="0.4" />
-      <path d="M12 40 C10 32 15 24 20 22 C18 28 16 34 17 40" stroke="#C9970A" strokeWidth="1.2" fill="none" opacity="0.9" />
-      <path d="M12 40 C10 48 15 56 20 58 C18 52 16 46 17 40" stroke="#C9970A" strokeWidth="1.2" fill="none" opacity="0.9" />
-      <path d="M68 40 C70 32 65 24 60 22 C62 28 64 34 63 40" stroke="#C9970A" strokeWidth="1.2" fill="none" opacity="0.9" />
-      <path d="M68 40 C70 48 65 56 60 58 C62 52 64 46 63 40" stroke="#C9970A" strokeWidth="1.2" fill="none" opacity="0.9" />
-      <path d="M32 62 Q40 66 48 62" stroke="#C9970A" strokeWidth="1" fill="none" opacity="0.8" />
-      {/* Crossed swords */}
-      <line x1="28" y1="26" x2="52" y2="54" stroke="#C9970A" strokeWidth="2" />
-      <line x1="52" y1="26" x2="28" y2="54" stroke="#C9970A" strokeWidth="2" />
-      <rect x="26" y="37.5" width="9" height="5" rx="1" fill="#C9970A" opacity="0.7" />
-      <rect x="45" y="37.5" width="9" height="5" rx="1" fill="#C9970A" opacity="0.7" />
-    </svg>
-  );
-}
-
-function EmblemShield() {
-  return (
-    <svg viewBox="0 0 80 80" width="80" height="80" aria-hidden fill="none">
-      <circle cx="40" cy="40" r="38" stroke="#C9970A" strokeWidth="1" opacity="0.4" />
-      <path d="M12 40 C10 32 15 24 20 22 C18 28 16 34 17 40" stroke="#C9970A" strokeWidth="1.2" fill="none" opacity="0.9" />
-      <path d="M12 40 C10 48 15 56 20 58 C18 52 16 46 17 40" stroke="#C9970A" strokeWidth="1.2" fill="none" opacity="0.9" />
-      <path d="M68 40 C70 32 65 24 60 22 C62 28 64 34 63 40" stroke="#C9970A" strokeWidth="1.2" fill="none" opacity="0.9" />
-      <path d="M68 40 C70 48 65 56 60 58 C62 52 64 46 63 40" stroke="#C9970A" strokeWidth="1.2" fill="none" opacity="0.9" />
-      <path d="M32 62 Q40 66 48 62" stroke="#C9970A" strokeWidth="1" fill="none" opacity="0.8" />
-      {/* Shield */}
-      <path d="M40 24 L54 30 L54 44 Q54 54 40 58 Q26 54 26 44 L26 30 Z" stroke="#C9970A" strokeWidth="1.5" fill="none" />
-      <line x1="40" y1="24" x2="40" y2="58" stroke="#C9970A" strokeWidth="1" opacity="0.5" />
-      <line x1="26" y1="38" x2="54" y2="38" stroke="#C9970A" strokeWidth="1" opacity="0.5" />
-    </svg>
-  );
-}
-
-function EmblemEagle() {
-  return (
-    <svg viewBox="0 0 80 80" width="80" height="80" aria-hidden fill="none">
-      <circle cx="40" cy="40" r="38" stroke="#C9970A" strokeWidth="1" opacity="0.4" />
-      <path d="M12 40 C10 32 15 24 20 22 C18 28 16 34 17 40" stroke="#C9970A" strokeWidth="1.2" fill="none" opacity="0.9" />
-      <path d="M12 40 C10 48 15 56 20 58 C18 52 16 46 17 40" stroke="#C9970A" strokeWidth="1.2" fill="none" opacity="0.9" />
-      <path d="M68 40 C70 32 65 24 60 22 C62 28 64 34 63 40" stroke="#C9970A" strokeWidth="1.2" fill="none" opacity="0.9" />
-      <path d="M68 40 C70 48 65 56 60 58 C62 52 64 46 63 40" stroke="#C9970A" strokeWidth="1.2" fill="none" opacity="0.9" />
-      <path d="M32 62 Q40 66 48 62" stroke="#C9970A" strokeWidth="1" fill="none" opacity="0.8" />
-      {/* Eagle wings spread */}
-      <path d="M40 32 L22 38 L28 42 L22 46 L30 44 L36 50 L40 48 L44 50 L50 44 L58 46 L52 42 L58 38 Z"
-            stroke="#C9970A" strokeWidth="1.2" fill="none" />
-      <circle cx="40" cy="34" r="3" stroke="#C9970A" strokeWidth="1.2" fill="none" />
-    </svg>
+    <img
+      src={src}
+      alt={alt}
+      width={110}
+      height={110}
+      className="select-none"
+      style={{ filter: "drop-shadow(0 0 8px rgba(201,151,10,0.3))" }}
+    />
   );
 }
 
@@ -86,28 +21,28 @@ export default async function LandingPage() {
 
   const features = [
     {
-      emblem: <EmblemTemple />,
+      emblem: <Emblem src="/emblem-curriculum.png" alt="" />,
       title: "de Romanis Curriculum",
       body: "Learn through a proven, comprehensive Latin curriculum.",
       link: "/curriculum",
       linkLabel: "Explore Curriculum",
     },
     {
-      emblem: <EmblemSwords />,
+      emblem: <Emblem src="/emblem-missions.png" alt="" />,
       title: "Gamified Learning",
       body: "Earn mastery, complete missions, and rise through the ranks.",
       link: user ? "/learn" : "/signup",
       linkLabel: "View Missions",
     },
     {
-      emblem: <EmblemShield />,
+      emblem: <Emblem src="/emblem-skills.png" alt="" />,
       title: "Master Core Skills",
       body: "Vocabulary, grammar, cases, and translation — all in one path.",
       link: "/skills",
       linkLabel: "Develop Skills",
     },
     {
-      emblem: <EmblemEagle />,
+      emblem: <Emblem src="/emblem-progress.png" alt="" />,
       title: "Track Your Progress",
       body: "See your growth chapter by chapter. Become legendary.",
       link: user ? "/dashboard" : "/signup",
@@ -133,13 +68,13 @@ export default async function LandingPage() {
             backgroundRepeat: "no-repeat",
           }}
         />
-        {/* Gradient: opaque dark on left, transparent on right so centurion shows */}
+        {/* Gradient: solid dark on left so text is always readable */}
         <div
           aria-hidden
           className="absolute inset-0"
           style={{
             background:
-              "linear-gradient(90deg, #0B1220 0%, #0B1220 40%, rgba(11,18,32,0.7) 65%, rgba(11,18,32,0.2) 100%)",
+              "linear-gradient(90deg, #0B1220 0%, #0B1220 45%, rgba(11,18,32,0.85) 60%, rgba(11,18,32,0.3) 80%, rgba(11,18,32,0.1) 100%)",
           }}
         />
         {/* Bottom fade */}
