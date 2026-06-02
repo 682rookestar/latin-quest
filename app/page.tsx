@@ -194,12 +194,20 @@ export default async function LandingPage() {
             <p className="h-display text-xs sm:text-sm mt-5 tracking-[0.4em] text-ink/50">
               The language is your power.
             </p>
-            <Link
-              href={user ? "/learn" : "/signup"}
-              className="inline-flex items-center gap-3 mt-6 h-display text-xs tracking-[0.2em] text-white border border-gold/40 px-6 py-3 rounded hover:bg-gold/10 transition-colors"
-            >
-              Join the Legion →
-            </Link>
+            <div className="flex flex-wrap gap-3 mt-6">
+              <Link
+                href={user ? "/learn" : "/signup"}
+                className="inline-flex items-center gap-3 h-display text-xs tracking-[0.2em] text-white border border-gold/40 px-6 py-3 rounded hover:bg-gold/10 transition-colors"
+              >
+                Join the Legion →
+              </Link>
+              <Link
+                href={user ? "/dashboard" : "/signup"}
+                className="inline-flex items-center gap-3 h-display text-xs tracking-[0.2em] text-gold border border-gold/40 px-6 py-3 rounded hover:bg-gold/10 transition-colors"
+              >
+                Track Your Progress →
+              </Link>
+            </div>
           </div>
         </div>
       </section>
