@@ -51,9 +51,9 @@ export default async function LandingPage() {
 
   return (
     <div className="-mt-8">
-      {/* ── HERO ── */}
+      {/* ── HERO — breaks out of max-w-6xl container ── */}
       <section
-        className="relative overflow-hidden"
+        className="relative overflow-hidden -mx-6"
         style={{ minHeight: "520px" }}
       >
         {/* Centurion image — right side, blends left */}
