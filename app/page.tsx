@@ -139,12 +139,6 @@ export default async function LandingPage() {
               <div className="mb-4">{f.emblem}</div>
               <h3 className="h-display text-sm text-white leading-snug">{f.title}</h3>
               <p className="text-sm text-ink/60 mt-2 max-w-[20ch] leading-relaxed">{f.body}</p>
-              <Link
-                href={f.link}
-                className="h-display text-xs text-gold mt-4 tracking-widest hover:opacity-80 transition-opacity"
-              >
-                {f.linkLabel} →
-              </Link>
             </div>
           ))}
         </div>
@@ -193,20 +187,12 @@ export default async function LandingPage() {
             <p className="h-display text-xs sm:text-sm mt-5 tracking-[0.4em] text-ink/50">
               The language is your power.
             </p>
-            <div className="flex flex-wrap gap-3 mt-6">
-              <Link
-                href={user ? "/learn" : "/signup"}
-                className="inline-flex items-center gap-3 h-display text-xs tracking-[0.2em] text-white border border-gold/40 px-6 py-3 rounded hover:bg-gold/10 transition-colors"
-              >
-                Join the Legion →
-              </Link>
-              <Link
-                href={user ? "/dashboard" : "/signup"}
-                className="inline-flex items-center gap-3 h-display text-xs tracking-[0.2em] text-gold border border-gold/40 px-6 py-3 rounded hover:bg-gold/10 transition-colors"
-              >
-                Track Your Progress →
-              </Link>
-            </div>
+            <Link
+              href={user ? "/learn" : "/signup"}
+              className="inline-flex items-center gap-3 mt-6 h-display text-xs tracking-[0.2em] text-white border border-gold/40 px-6 py-3 rounded hover:bg-gold/10 transition-colors"
+            >
+              Join the Legion →
+            </Link>
           </div>
         </div>
       </section>
