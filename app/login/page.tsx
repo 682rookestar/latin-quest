@@ -31,33 +31,45 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="grid lg:grid-cols-[1fr_1fr] gap-8 items-center mt-6">
-      {/* Form column */}
-      <div className="max-w-md mx-auto w-full hex-frame">
-        <div className="p-8">
-          <p className="h-display text-sky text-xs tracking-[0.3em] mb-3">Salve, discipule</p>
-          <h1 className="h-display text-3xl">Sign in</h1>
-          <p className="text-sm text-ink/60 mb-6">Welcome back to the academy.</p>
-          {urlError && (
-            <p className="text-wine text-sm bg-wine/5 border border-wine/20 rounded p-3 mb-4">
-              {urlError}
-            </p>
-          )}
-          <form onSubmit={submit} className="space-y-4">
-            <input className="input" type="email" placeholder="email" value={email} onChange={e=>setEmail(e.target.value)} required />
-            <input className="input" type="password" placeholder="password" value={password} onChange={e=>setPassword(e.target.value)} required />
-            {error && <p className="text-wine text-sm">{error}</p>}
-            <button className="btn-primary w-full" disabled={loading}>{loading ? "Signing in…" : "Sign in"}</button>
-          </form>
-          <p className="text-sm text-ink/60 mt-4">
-            No account? <Link className="underline" href="/signup">Sign up</Link>
-          </p>
-        </div>
-      </div>
+    <div className="relative -mx-6 -mt-8 flex items-center min-h-[calc(100vh-64px)]">
+      {/* Hero background */}
+      <div
+        aria-hidden
+        className="absolute inset-0"
+        style={{
+          backgroundImage: "url('/hero.png')",
+          backgroundSize: "cover",
+          backgroundPosition: "center",
+        }}
+      />
+      <div
+        aria-hidden
+        className="absolute inset-0"
+        style={{
+          background:
+            "linear-gradient(90deg, #0B1220 0%, #0B1220 20%, rgba(11,18,32,0.6) 35%, rgba(11,18,32,0.0) 55%)",
+        }}
+      />
 
-      {/* Hero image column -- hidden on mobile */}
-      <div className="hidden lg:block hex-frame">
-        <div className="hero-image" style={{ aspectRatio: "4/5" }} />
+      {/* Form */}
+      <div className="relative z-10 w-full max-w-sm ml-6 sm:ml-16 my-12">
+        <p className="h-display text-gold text-xs tracking-[0.3em] mb-3">Salve, discipule</p>
+        <h1 className="h-display text-3xl text-white mb-1">Sign in</h1>
+        <p className="text-sm text-white/50 mb-6">Welcome back to the academy.</p>
+        {urlError && (
+          <p className="text-wine text-sm bg-wine/5 border border-wine/20 rounded p-3 mb-4">
+            {urlError}
+          </p>
+        )}
+        <form onSubmit={submit} className="space-y-4">
+          <input className="input" type="email" placeholder="email" value={email} onChange={e => setEmail(e.target.value)} required />
+          <input className="input" type="password" placeholder="password" value={password} onChange={e => setPassword(e.target.value)} required />
+          {error && <p className="text-wine text-sm">{error}</p>}
+          <button className="btn-primary w-full" disabled={loading}>{loading ? "Signing in…" : "Sign in"}</button>
+        </form>
+        <p className="text-sm text-white/50 mt-4">
+          No account? <Link className="underline text-gold" href="/signup">Sign up</Link>
+        </p>
       </div>
     </div>
   );
