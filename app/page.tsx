@@ -173,7 +173,6 @@ export default async function LandingPage() {
             alt=""
             aria-hidden
             className="h-52 sm:h-64 w-auto select-none"
-            style={{ filter: "drop-shadow(0 0 20px rgba(201,151,10,0.4))" }}
           />
 
           <div>
