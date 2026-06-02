@@ -63,7 +63,7 @@ export default async function LandingPage() {
           style={{
             backgroundImage: "url('/hero.png')",
             backgroundSize: "cover",
-            backgroundPosition: "center right",
+            backgroundPosition: "center",
             backgroundRepeat: "no-repeat",
           }}
         />
@@ -73,7 +73,7 @@ export default async function LandingPage() {
           className="absolute inset-0"
           style={{
             background:
-              "linear-gradient(90deg, #0B1220 0%, #0B1220 45%, rgba(11,18,32,0.85) 60%, rgba(11,18,32,0.3) 80%, rgba(11,18,32,0.1) 100%)",
+              "linear-gradient(90deg, #0B1220 0%, #0B1220 30%, rgba(11,18,32,0.75) 45%, rgba(11,18,32,0.2) 65%, rgba(11,18,32,0.0) 100%)",
           }}
         />
         {/* Bottom fade */}
