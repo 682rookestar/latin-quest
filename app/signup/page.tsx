@@ -20,9 +20,6 @@ export default function SignupPage() {
 
     const supabase = createClient();
 
-    // 1. Validate the join code BEFORE creating an auth user. This is
-    // what stops random internet visitors from registering -- no valid
-    // code, no account.
     const cleanCode = code.replace(/\s+/g, "").toUpperCase();
     const { data: cls, error: codeError } = await supabase
       .rpc("validate_join_code", { p_code: cleanCode })
@@ -33,9 +30,6 @@ export default function SignupPage() {
       return;
     }
 
-    // 2. Code is good. Create the auth user. Role is decided server-
-    // side: trigger handle_new_user always provisions students (the
-    // raw_user_meta_data.role field is ignored).
     const { error: signUpError } = await supabase.auth.signUp({
       email,
       password,
@@ -50,16 +44,11 @@ export default function SignupPage() {
       return;
     }
 
-    // 3. Auto-enrol them in the class they just typed the code for.
-    // The signUp call has already set their session cookies, so this
-    // RPC runs as the new student.
     const { error: enrolError } = await supabase
       .rpc("join_class_by_code", { p_code: cleanCode })
       .maybeSingle();
     setLoading(false);
     if (enrolError) {
-      // Account exists but enrolment failed -- they can still try
-      // from /learn/join. Show a soft warning rather than blocking.
       router.push("/learn/join?error=enrol_failed");
       return;
     }
