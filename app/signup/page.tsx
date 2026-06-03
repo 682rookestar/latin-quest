@@ -4,6 +4,17 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 
+function MicrosoftIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 21 21" aria-hidden>
+      <rect x="1"  y="1"  width="9" height="9" fill="#f25022" />
+      <rect x="11" y="1"  width="9" height="9" fill="#7fba00" />
+      <rect x="1"  y="11" width="9" height="9" fill="#00a4ef" />
+      <rect x="11" y="11" width="9" height="9" fill="#ffb900" />
+    </svg>
+  );
+}
+
 export default function SignupPage() {
   const router = useRouter();
   const [email, setEmail] = useState("");
@@ -68,6 +79,19 @@ export default function SignupPage() {
     router.refresh();
   }
 
+  async function signInWithMicrosoft() {
+    setLoading(true); setError(null);
+    const supabase = createClient();
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: "azure",
+      options: {
+        scopes: "openid email profile",
+        redirectTo: `${window.location.origin}/auth/callback`,
+      },
+    });
+    if (error) { setLoading(false); setError(error.message); }
+  }
+
   return (
     <div className="relative -mx-6 -mt-8 flex items-center min-h-[calc(100vh-64px)]">
       {/* Hero background */}
@@ -92,10 +116,24 @@ export default function SignupPage() {
       {/* Form */}
       <div className="relative z-10 w-full max-w-sm ml-6 sm:ml-16 my-12">
         <p className="h-display text-gold text-xs tracking-[0.3em] mb-3">Begin your legion</p>
-        <h1 className="h-display text-3xl text-white mb-1">Create a student account</h1>
-        <p className="text-sm text-white/50 mb-6">
-          Enter the join code your teacher gave you to sign up.
-        </p>
+        <h1 className="h-display text-3xl text-white mb-1">Join the Academy</h1>
+
+        {/* Microsoft SSO — primary path for school users */}
+        <button
+          onClick={signInWithMicrosoft}
+          disabled={loading}
+          className="w-full flex items-center justify-center gap-3 px-4 py-2.5 rounded-lg border border-white/20 bg-white/5 hover:bg-white/10 transition-colors text-sm font-medium text-white mt-4 mb-4"
+        >
+          <MicrosoftIcon />
+          Sign up with Microsoft
+        </button>
+
+        <div className="flex items-center gap-3 mb-4">
+          <div className="flex-1 h-px bg-white/10" />
+          <span className="text-xs text-white/30">or use a join code</span>
+          <div className="flex-1 h-px bg-white/10" />
+        </div>
+
         <form onSubmit={submit} className="space-y-4">
           <input
             className="input uppercase tracking-widest text-center text-lg font-mono"
@@ -115,9 +153,6 @@ export default function SignupPage() {
         </form>
         <p className="text-sm text-white/50 mt-4">
           Already have an account? <Link className="underline text-gold" href="/login">Sign in</Link>
-        </p>
-        <p className="text-xs text-white/30 mt-2">
-          Don&apos;t have a join code? Ask your teacher &mdash; or, if you&apos;re a teacher yourself, ask your admin to send you an invite.
         </p>
       </div>
     </div>
