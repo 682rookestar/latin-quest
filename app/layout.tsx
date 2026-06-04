@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import SignOutButton from "@/components/SignOutButton";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 
 export const metadata: Metadata = {
   title: "Latin Quest — De Romanis",
@@ -70,6 +71,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             Built for the De Romanis curriculum · Latin Quest © {new Date().getFullYear()}
           </div>
         </footer>
+        <SpeedInsights />
       </body>
     </html>
   );
