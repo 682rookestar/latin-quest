@@ -69,6 +69,9 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           <div className="text-xs text-ink/45 text-center mt-3">
             Built for the De Romanis curriculum · Latin Quest © {new Date().getFullYear()}
           </div>
+          <div className="text-xs text-ink/30 text-center mt-2">
+            <Link href="/privacy" className="hover:text-ink/60 transition-colors">Privacy Policy</Link>
+          </div>
         </footer>
       </body>
     </html>
