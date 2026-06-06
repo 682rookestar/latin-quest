@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { createClient } from "@/lib/supabase/server";
 
 // Real emblem images — drop these in /public/ to replace placeholders
@@ -56,16 +57,15 @@ export default async function LandingPage() {
         className="relative overflow-hidden -mx-6"
         style={{ minHeight: "520px" }}
       >
-        {/* Centurion image — right side, blends left */}
-        <div
+        {/* Centurion image — Next.js Image with priority for fast LCP */}
+        <Image
+          src="/hero.png"
+          alt=""
+          fill
+          priority
+          sizes="100vw"
+          className="object-cover object-center"
           aria-hidden
-          className="absolute inset-0"
-          style={{
-            backgroundImage: "url('/hero.png')",
-            backgroundSize: "cover",
-            backgroundPosition: "center",
-            backgroundRepeat: "no-repeat",
-          }}
         />
         {/* Gradient: solid dark on left so text is always readable */}
         <div

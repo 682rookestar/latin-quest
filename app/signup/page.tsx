@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 import { createClient } from "@/lib/supabase/client";
 
 export default function SignupPage() {
@@ -60,14 +61,14 @@ export default function SignupPage() {
   return (
     <div className="relative -mx-6 -mt-8 flex items-center min-h-[calc(100vh-64px)]">
       {/* Hero background */}
-      <div
+      <Image
+        src="/signin.png"
+        alt=""
+        fill
+        priority
+        sizes="100vw"
+        className="object-cover object-center"
         aria-hidden
-        className="absolute inset-0"
-        style={{
-          backgroundImage: "url('/signin.png')",
-          backgroundSize: "cover",
-          backgroundPosition: "center",
-        }}
       />
       <div
         aria-hidden
