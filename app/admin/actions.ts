@@ -234,19 +234,18 @@ export async function revokeInvite(formData: FormData): Promise<void> {
   const { supabase, user, profile } = await requireAdmin();
   if (!user || profile?.role !== "admin") return;
 
-  // If the invite already provisioned an auth user, remove that too
-  // (cascades to public.profiles via the FK). Without this step,
-  // re-inviting the same email later would collide on auth.users.
   const { data: invite } = await supabase
     .from("teacher_invites")
     .select("accepted_by, email")
     .eq("id", id)
     .single();
 
-  if (invite?.accepted_by) {
-    const admin = createAdminClient();
-    await admin.auth.admin.deleteUser(invite.accepted_by);
-  }
+  // Safety guard: once an invite has been accepted it represents an active
+  // teacher account with classes, students, and progress records. Deleting
+  // the auth user here would cascade-wipe all of that. Revocation is only
+  // safe for invites that have never been used. Removing an established
+  // teacher must be a separate, explicitly confirmed workflow.
+  if (invite?.accepted_by) return;
 
   await supabase.rpc("revoke_teacher_invite", { p_invite: id });
   revalidatePath("/admin/teachers");

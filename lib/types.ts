@@ -33,3 +33,6 @@ export interface ExerciseQuestion {
   options: any | null;
   metadata: any | null;
 }
+
+/** Questions as sent to the browser — correct_answer is intentionally absent. */
+export type ExerciseQuestionPublic = Omit<ExerciseQuestion, "correct_answer">;

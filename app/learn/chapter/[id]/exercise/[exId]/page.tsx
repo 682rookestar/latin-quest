@@ -1,6 +1,7 @@
 import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import ExerciseRunner from "@/components/ExerciseRunner";
+import type { ExerciseQuestionPublic } from "@/lib/types";
 
 const BOSS_SAMPLE_SIZE = 15;
 
@@ -117,10 +118,17 @@ export default async function ExercisePage({
     questions = scored.map((s, idx) => ({ ...s.q, position: idx + 1 }));
   }
 
+  // Strip correct_answer before sending to the client component.
+  // Scoring is now entirely server-side; the browser never sees answers.
+  const publicQuestions: ExerciseQuestionPublic[] = (questions as any[]).map(
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    ({ correct_answer: _removed, ...rest }) => rest
+  );
+
   return (
     <ExerciseRunner
       exercise={exercise}
-      questions={questions}
+      questions={publicQuestions}
       backHref={`/learn/chapter/${params.id}`}
     />
   );

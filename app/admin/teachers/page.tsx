@@ -75,15 +75,22 @@ export default async function TeachersAdmin() {
                         )}
                       </div>
                     </div>
-                    <form action={revokeInvite}>
-                      <input type="hidden" name="id" value={i.id} />
-                      <button
-                        className="text-sm text-wine hover:underline"
-                        type="submit"
-                      >
-                        Revoke
-                      </button>
-                    </form>
+                    {/* Only pending (not-yet-accepted) invites can be revoked.
+                        Removing an established teacher requires a separate
+                        admin workflow to handle class transfer safely. */}
+                    {!i.accepted_by ? (
+                      <form action={revokeInvite}>
+                        <input type="hidden" name="id" value={i.id} />
+                        <button
+                          className="text-sm text-wine hover:underline"
+                          type="submit"
+                        >
+                          Revoke
+                        </button>
+                      </form>
+                    ) : (
+                      <span className="text-xs text-ink/30">account active</span>
+                    )}
                   </div>
                   {i.action_link && (
                     <div className="flex items-center gap-3 text-xs">
