@@ -1,6 +1,6 @@
 # Latin Quest
 
-A gamified Latin learning platform built around the **de Romanis** (Bloomsbury) Book 1 curriculum.
+A gamified Latin learning platform.
 
 * **Stack:** Next.js 14 (App Router) + TypeScript + Tailwind, Supabase (Postgres + Auth + RLS).
 * **Content:** All 6 chapters of *dei et deae* — vocab, grammar topics, principal parts, and 30+ sample exercises across 10 game types.

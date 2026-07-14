@@ -34,7 +34,6 @@ export default async function RootLayout({ children }: { children: React.ReactNo
                 style={{ background: "#22D3EE", boxShadow: "0 0 16px -4px rgba(34,211,238,0.6)" }}
               >LQ</span>
               <span className="h-display tracking-wide group-hover:text-sky transition text-lg">Latin Quest</span>
-              <span className="chip-sky ml-2">de Romanis</span>
             </Link>
             <div className="flex items-center gap-3 text-sm">
               {user ? (

@@ -15,7 +15,7 @@ export default function PrivacyPage() {
 
       <Section title="1. Who we are">
         <p>
-          Latin Quest is an online Latin learning platform built around the <em>de Romanis</em> curriculum.
+          Latin Quest is an online Latin learning platform.
           It is operated by James Rooke ("we", "us", "our").
         </p>
         <p className="mt-2">

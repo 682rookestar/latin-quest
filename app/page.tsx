@@ -22,7 +22,7 @@ export default async function LandingPage() {
   const features = [
     {
       emblem: <Emblem src="/emblem-curriculum.png" alt="" />,
-      title: "de Romanis Curriculum",
+      title: "Latin Curriculum",
       body: "Learn through a proven, comprehensive Latin curriculum.",
       link: "/curriculum",
       linkLabel: "Explore Curriculum",
