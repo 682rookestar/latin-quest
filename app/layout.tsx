@@ -5,8 +5,8 @@ import { createClient } from "@/lib/supabase/server";
 import SignOutButton from "@/components/SignOutButton";
 
 export const metadata: Metadata = {
-  title: "Latin Quest — De Romanis",
-  description: "Gamified Latin learning, built around the De Romanis curriculum.",
+  title: "Latin Quest",
+  description: "Gamified Latin learning.",
 };
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
@@ -66,7 +66,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             Lingua Latina · Potentia Aeterna
           </div>
           <div className="text-xs text-ink/45 text-center mt-3">
-            Built for the De Romanis curriculum · Latin Quest © {new Date().getFullYear()}
+            Latin Quest © {new Date().getFullYear()}
           </div>
           <div className="text-xs text-ink/30 text-center mt-2">
             <Link href="/privacy" className="hover:text-ink/60 transition-colors">Privacy Policy</Link>

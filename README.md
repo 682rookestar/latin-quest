@@ -33,7 +33,7 @@ Core tables (full schema in `/supabase/migrations` if you eject; right now they 
 profiles          → role-aware mirror of auth.users
 classes           → teacher_id + unique 6-char join_code
 class_members     → many-to-many (student ⨯ class)
-chapters          → 6 De Romanis chapters with grammar_summary
+chapters          → 6 chapters with grammar_summary
 vocab_items       → latin/english/PoS/stem/declension/gender/principal parts
 grammar_topics    → grammar threads each chapter covers
 skills            → 10 game-type skill rows
