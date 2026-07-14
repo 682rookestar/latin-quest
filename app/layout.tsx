@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import SignOutButton from "@/components/SignOutButton";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 
 export const metadata: Metadata = {
   title: "Latin Quest — De Romanis",
@@ -73,6 +74,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             <Link href="/privacy" className="hover:text-ink/60 transition-colors">Privacy Policy</Link>
           </div>
         </footer>
+        <SpeedInsights />
       </body>
     </html>
   );
