@@ -393,11 +393,11 @@ function OptionGrid({
 }) {
   return (
     <div className="mt-3 grid grid-cols-2 gap-2">
-      {opts.map((o) => {
+      {opts.map((o, idx) => {
         const active = answer === o;
         return (
           <button
-            key={o}
+            key={idx}
             type="button"
             disabled={locked}
             onClick={() => setAnswer(o)}
