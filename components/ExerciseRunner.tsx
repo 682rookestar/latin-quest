@@ -42,7 +42,7 @@ export default function ExerciseRunner({
 }) {
   const router = useRouter();
   const [i, setI]                 = useState(0);
-  const [answer, setAnswer]       = useState<any>("");
+  const [answer, setAnswer]       = useState<any>(null);
   const [checking, setChecking]   = useState(false);
   const [checkResult, setCheckResult] = useState<{ is_correct: boolean; correct_answer: string } | null>(null);
   const [collected, setCollected] = useState<CollectedAnswer[]>([]);
@@ -82,7 +82,7 @@ export default function ExerciseRunner({
 
     const nextQ: any      = questions[i + 1];
     const nextGame: string = nextQ?.metadata?.__game_type ?? exercise.game_type;
-    setAnswer(nextGame === "word_type_sort" ? {} : "");
+    setAnswer(nextGame === "word_type_sort" ? {} : null);
 
     if (i + 1 >= questions.length) {
       await handleFinish(newCollected);
@@ -160,7 +160,7 @@ export default function ExerciseRunner({
               setSubmitError(null);
               const firstQ: any    = questions[0];
               const firstGame: string = firstQ?.metadata?.__game_type ?? exercise.game_type;
-              setAnswer(firstGame === "word_type_sort" ? {} : "");
+              setAnswer(firstGame === "word_type_sort" ? {} : null);
               if (exercise.is_boss) router.refresh();
             }}
           >
