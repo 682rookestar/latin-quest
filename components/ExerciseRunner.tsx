@@ -129,7 +129,10 @@ export default function ExerciseRunner({
   // ── Done screen ───────────────────────────────────────────────────────────
   if (finalResult) {
     const { score_pct, correct, total, results, badge_earned } = finalResult;
-    const resultMap = new Map(results.map((r) => [r.question_id, r]));
+    const resultMap    = new Map(results.map((r) => [r.question_id, r]));
+    // Look up by question_id not by index — router.refresh() can reorder the
+    // questions prop after submission, making index-based lookup unreliable.
+    const collectedMap = new Map(collected.map((c) => [c.question_id, c.student_answer]));
 
     return (
       <div className="max-w-2xl mx-auto card p-8 text-center">
@@ -184,7 +187,7 @@ export default function ExerciseRunner({
                   <div className="flex justify-between text-xs">
                     <span>
                       your answer:{" "}
-                      <span className="font-mono">{collected[idx]?.student_answer || "—"}</span>
+                      <span className="font-mono">{collectedMap.get(qq.id) || "—"}</span>
                     </span>
                     <span>
                       expected:{" "}
