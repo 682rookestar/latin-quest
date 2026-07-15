@@ -12,6 +12,9 @@ function strip(s: string): string {
     .normalize("NFD")
     .replace(/[̀-ͯ]/g, "")
     .toLowerCase()
+    // Replace all punctuation (including direct-speech marks) with spaces so
+    // students don't need to reproduce quotes, exclamation marks, etc.
+    .replace(/["""'''„«»!?.,;:()\[\]{}/\\—–\-]/g, " ")
     .replace(/[^a-z0-9\s]/g, " ")
     .replace(/\s+/g, " ")
     .trim();
