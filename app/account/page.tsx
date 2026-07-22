@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import PasswordForm from "./PasswordForm";
+import MfaManager from "./MfaManager";
 
 export default async function AccountPage() {
   const supabase = await createClient();
@@ -32,6 +33,14 @@ export default async function AccountPage() {
           Pick a password so you can sign in next time without needing an invite link.
         </p>
         <PasswordForm />
+      </section>
+
+      <section className="card p-5 space-y-3">
+        <h2 className="font-semibold">Authenticator app</h2>
+        <p className="text-sm text-ink/60">
+          Two-step verification is required for teachers and administrators and optional for pupils.
+        </p>
+        <MfaManager required={["teacher", "admin"].includes(profile?.role ?? "")} />
       </section>
     </div>
   );

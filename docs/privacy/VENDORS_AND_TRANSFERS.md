@@ -4,8 +4,8 @@ Status: Draft; verify against current contracts and subprocessor lists before us
 
 | Supplier | Service/data | Primary location | Potential onward processing | Contract/safeguard | Review status |
 |---|---|---|---|---|---|
-| Supabase, Inc. | Auth, Postgres database, logs, backups and support | Project database: AWS London (`eu-west-2`) | US and listed subprocessors may support service | Supabase DPA; SCCs/UK Addendum or applicable data bridge; TIA | DPA acceptance and subprocessor review pending |
-| Vercel Inc. | Hosting, Functions, CDN, deployment and operational logs | Function region configured London; global CDN | US and global subprocessors; globally replicated operational systems/backups | Vercel DPA for applicable plan; SCCs/UK Addendum/DPF; transfer assessment | Plan and DPA coverage pending |
+| Supabase, Inc. | Auth, Postgres database, logs, backups and support | Project database verified through the provider API as AWS London (`eu-west-2`), 22 July 2026 | US and listed subprocessors may support service | Supabase DPA; SCCs/UK Addendum or applicable data bridge; TIA | Region verified; Pro plan verified; DPA acceptance and subprocessor review pending |
+| Vercel Inc. | Hosting, Functions, CDN, deployment and operational logs | Function region configured London; global CDN | US and global subprocessors; globally replicated operational systems/backups | Vercel DPA for Pro/Enterprise; SCCs/UK Addendum/DPF; transfer assessment | Connected API confirms project but does not expose billing tier; confirm Pro/Enterprise in Billing before school use |
 | Amazon Web Services | Underlying infrastructure through suppliers | Supplier-selected regions including London | Supplier resilience/support arrangements | Covered as supplier subprocessor | Verify through supplier lists |
 | Email provider | Authentication/invitation emails | [IDENTIFY] | [IDENTIFY] | DPA and transfer mechanism | Pending |
 

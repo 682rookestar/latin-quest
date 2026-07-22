@@ -74,7 +74,7 @@ controls. Actions marked Open must be completed or formally accepted.
 | Leaderboard causes embarrassment or unwanted disclosure | Pupils | Class-only visibility and limited fields | Medium | Add class-level disable/pseudonym option — Open |
 | Export is sent to the wrong recipient or retained locally | Pupils | Owner-only download | Medium | Add export guidance/audit log — Open |
 | Incorrect marking affects educational judgement | Pupils | Canonical scoring and review feedback | Medium | Automated curriculum/scoring regression tests — Open |
-| Account takeover | All users | Supabase authentication, secure cookies and TLS | Medium | Enforce stronger passwords; assess teacher/admin MFA — Open |
+| Account takeover | All users | Supabase authentication, secure cookies and TLS; 12-character application minimum and mandatory TOTP MFA for teachers/admins implemented | Low | Deploy auth migration; enable leaked-password protection and matching 12-character provider policy — Open |
 | International processing is not transparent or safeguarded | All users | Revised notice, supplier DPAs and transfer mechanisms | Medium | Complete vendor/transfer review — Open |
 | Excessive retention | Pupils | Cascading account deletion and schedule | Medium | Implement annual review and evidence deletions — Open |
 | Special-category data entered into free text | Pupils | Not requested; notice warns against entry | Medium | Add input guidance and incident process — Open |

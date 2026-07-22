@@ -14,8 +14,8 @@ export default function PasswordForm() {
     setError(null);
     setSuccess(null);
 
-    if (password.length < 8) {
-      setError("Password must be at least 8 characters.");
+    if (password.length < 12) {
+      setError("Password must be at least 12 characters.");
       return;
     }
     if (password !== confirm) {
@@ -42,11 +42,11 @@ export default function PasswordForm() {
       <input
         className="input"
         type="password"
-        placeholder="new password (min 8 chars)"
+        placeholder="new password (min 12 chars)"
         value={password}
         onChange={(e) => setPassword(e.target.value)}
         autoComplete="new-password"
-        minLength={8}
+        minLength={12}
         required
       />
       <input
@@ -56,7 +56,7 @@ export default function PasswordForm() {
         value={confirm}
         onChange={(e) => setConfirm(e.target.value)}
         autoComplete="new-password"
-        minLength={8}
+        minLength={12}
         required
       />
       {error && <p className="text-wine text-sm">{error}</p>}

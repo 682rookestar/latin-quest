@@ -27,7 +27,12 @@ export default function LoginPage() {
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     setLoading(false);
     if (error) { setError(error.message); return; }
-    router.push("/dashboard");
+    const { data: assurance } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+    router.push(
+      assurance?.currentLevel === "aal1" && assurance.nextLevel === "aal2"
+        ? "/mfa/verify"
+        : "/dashboard"
+    );
     router.refresh();
   }
 

@@ -2,6 +2,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { revalidatePath } from "next/cache";
+import { hasAal2 } from "@/lib/auth-security";
 
 type Result = {
   ok: boolean;
@@ -18,6 +19,9 @@ async function requireAdmin() {
     .select("role")
     .eq("id", user.id)
     .single();
+  if (["teacher", "admin"].includes(profile?.role ?? "") && !(await hasAal2(supabase))) {
+    return { supabase, user, profile: null };
+  }
   return { supabase, user, profile };
 }
 

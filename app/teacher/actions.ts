@@ -2,6 +2,11 @@
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { hasAal2 } from "@/lib/auth-security";
+
+async function requireStaffMfa(supabase: Awaited<ReturnType<typeof createClient>>) {
+  if (!(await hasAal2(supabase))) redirect("/account?mfa=required");
+}
 
 // 10 chars from a 32-char unambiguous alphabet ~= 32^10 (~10^15) combinations.
 // Stops trivial brute-forcing while still being short enough to read aloud.
@@ -18,6 +23,7 @@ export async function createClass(formData: FormData) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
+  await requireStaffMfa(supabase);
 
   // Default a 30-day expiry on new join codes; teachers can rotate
   // the code from the class page at any time.
@@ -57,6 +63,7 @@ export async function setChapterLock(formData: FormData): Promise<void> {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
+  await requireStaffMfa(supabase);
 
   // The RPC enforces owner-or-admin server-side.
   await supabase.rpc("set_chapter_lock", {
@@ -74,6 +81,7 @@ export async function rotateJoinCode(formData: FormData): Promise<void> {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
+  await requireStaffMfa(supabase);
 
   // RPC enforces "owner of this class or admin" on the database side;
   // we don't need a client-side role check here.

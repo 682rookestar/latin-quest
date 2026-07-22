@@ -31,11 +31,11 @@ export default function SignupPage() {
       return;
     }
 
-    const { error: signUpError } = await supabase.auth.signUp({
+    const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
       email,
       password,
       options: {
-        data: { display_name: displayName },
+        data: { display_name: displayName, join_code: cleanCode },
         emailRedirectTo: typeof window !== "undefined" ? `${window.location.origin}/dashboard` : undefined,
       },
     });
@@ -45,15 +45,22 @@ export default function SignupPage() {
       return;
     }
 
-    const { error: enrolError } = await supabase
-      .rpc("join_class_by_code", { p_code: cleanCode })
-      .maybeSingle();
+    // When email confirmation is required there is no authenticated session
+    // yet. The database trigger uses the validated join_code metadata to enrol
+    // the pupil atomically when the auth user is created.
+    const enrolError = signUpData.session
+      ? (await supabase.rpc("join_class_by_code", { p_code: cleanCode }).maybeSingle()).error
+      : null;
     setLoading(false);
     if (enrolError) {
       router.push("/learn/join?error=enrol_failed");
       return;
     }
 
+    if (!signUpData.session) {
+      setError("Check your email and confirm your address before signing in.");
+      return;
+    }
     router.push("/dashboard");
     router.refresh();
   }
@@ -99,7 +106,7 @@ export default function SignupPage() {
           />
           <input className="input" placeholder="full name" value={displayName} onChange={e => setDisplayName(e.target.value)} required />
           <input className="input" type="email" placeholder="email" value={email} onChange={e => setEmail(e.target.value)} required />
-          <input className="input" type="password" placeholder="password (min 6 chars)" value={password} onChange={e => setPassword(e.target.value)} required minLength={6} />
+          <input className="input" type="password" placeholder="password (min 12 chars)" value={password} onChange={e => setPassword(e.target.value)} required minLength={12} autoComplete="new-password" />
           {error && <p className="text-wine text-sm">{error}</p>}
           <button className="btn-primary w-full" disabled={loading}>{loading ? "Creating account…" : "Create account"}</button>
         </form>
