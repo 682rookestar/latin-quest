@@ -23,7 +23,7 @@ export default function PrivacyPage() {
       </div>
 
       <Section title="1. Who is responsible">
-        <p>Latin Quest is operated by James Rooke.</p>
+        <p>Latin Quest is operated by Alexandria Rooke.</p>
         <p className="mt-2">
           When a school chooses Latin Quest and determines how pupil information
           is used, the school is normally the controller and Latin Quest acts as
