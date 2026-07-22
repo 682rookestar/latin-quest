@@ -30,7 +30,7 @@ export async function GET(request: NextRequest) {
     );
   }
 
-  const supabase = createClient();
+  const supabase = await createClient();
   const { error } = await supabase.auth.verifyOtp({ type, token_hash });
   if (error) {
     // Common cause: token already consumed by an email scanner, or

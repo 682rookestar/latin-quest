@@ -5,7 +5,7 @@ import { createClass } from "./actions";
 import PageHero from "@/components/PageHero";
 
 export default async function TeacherHome() {
-  const supabase = createClient();
+  const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
   const { data: profile } = await supabase
@@ -15,19 +15,18 @@ export default async function TeacherHome() {
     .single();
   if (profile?.role !== "teacher") redirect("/learn");
 
-  // Every teacher can see every class. Fetch with the owner's display info.
+  // Teachers only see classes they own. Platform-wide oversight belongs to
+  // administrators and is intentionally kept out of the teacher role.
   const { data: classes } = await supabase
     .from("classes")
-    .select("id, name, join_code, teacher_id, created_at, profiles!classes_teacher_id_fkey(display_name, email), class_members(count)")
+    .select("id, name, join_code, teacher_id, created_at, class_members(count)")
+    .eq("teacher_id", user.id)
     .order("created_at", { ascending: false });
 
-  const mine = ((classes ?? []) as any[]).filter((c) => c.teacher_id === user.id);
-  const others = ((classes ?? []) as any[]).filter((c) => c.teacher_id !== user.id);
+  const mine = (classes ?? []) as any[];
 
-  function ClassCard({ c, mine }: { c: any; mine: boolean }) {
+  function ClassCard({ c }: { c: any }) {
     const count = (c.class_members as any)?.[0]?.count ?? 0;
-    const ownerP: any = Array.isArray(c.profiles) ? c.profiles[0] : c.profiles;
-    const ownerName = ownerP?.display_name ?? ownerP?.email ?? "Unknown";
     return (
       <Link
         key={c.id}
@@ -40,7 +39,6 @@ export default async function TeacherHome() {
         </div>
         <p className="text-sm text-ink/60 mt-1">
           {count} student{count === 1 ? "" : "s"}
-          {!mine && <> &middot; <span className="text-ink/50">teacher: {ownerName}</span></>}
         </p>
       </Link>
     );
@@ -51,7 +49,7 @@ export default async function TeacherHome() {
       <PageHero
         latinTag="Magister"
         title="Teacher dashboard"
-        subtitle={`Welcome, ${profile?.display_name}. Create a class and share the join code, or browse other teachers' classes below.`}
+        subtitle={`Welcome, ${profile?.display_name}. Create a class, share the join code, and monitor your students' progress.`}
         variant="colosseum"
       />
 
@@ -69,22 +67,10 @@ export default async function TeacherHome() {
           <p className="text-ink/60">No classes yet &mdash; create one above.</p>
         ) : (
           <div className="grid md:grid-cols-2 gap-4">
-            {mine.map((c) => <ClassCard key={c.id} c={c} mine={true} />)}
+            {mine.map((c) => <ClassCard key={c.id} c={c} />)}
           </div>
         )}
       </section>
-
-      {others.length > 0 && (
-        <section>
-          <h2 className="h-display text-xl mb-3">Other teachers&apos; classes</h2>
-          <p className="text-sm text-ink/60 mb-3">
-            View-only. You can browse students, attempts, and exports, but only the owning teacher can edit or delete.
-          </p>
-          <div className="grid md:grid-cols-2 gap-4">
-            {others.map((c) => <ClassCard key={c.id} c={c} mine={false} />)}
-          </div>
-        </section>
-      )}
     </div>
   );
 }

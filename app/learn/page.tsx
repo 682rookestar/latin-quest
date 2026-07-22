@@ -8,9 +8,10 @@ import ClassLeaderboard from "@/components/ClassLeaderboard";
 export default async function LearnHome({
   searchParams,
 }: {
-  searchParams?: { locked?: string };
+  searchParams?: Promise<{ locked?: string }>;
 }) {
-  const supabase = createClient();
+  const resolvedSearchParams = await searchParams;
+  const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
@@ -53,7 +54,7 @@ export default async function LearnHome({
         subtitle="Pick a chapter to keep practising, or join a class to compete with your cohort."
         variant="legionary"
       />
-      {searchParams?.locked === "1" && (
+      {resolvedSearchParams?.locked === "1" && (
         <p className="-mt-4 text-sm text-wine bg-wine/5 border border-wine/20 rounded p-3">
           That chapter is currently locked by your teacher. Try another, or check back later.
         </p>

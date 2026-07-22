@@ -32,8 +32,9 @@ const GAME_ICONS: Record<string, string> = {
   boss: "👑",
 };
 
-export default async function ChapterPage({ params }: { params: { id: string } }) {
-  const supabase = createClient();
+export default async function ChapterPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
@@ -45,10 +46,10 @@ export default async function ChapterPage({ params }: { params: { id: string } }
     { data: attempts },
     { data: lockedRows },
   ] = await Promise.all([
-    supabase.from("chapters").select("*").eq("id", params.id).single(),
-    supabase.from("vocab_items").select("*").eq("chapter_id", params.id).order("part_of_speech"),
-    supabase.from("grammar_topics").select("*").eq("chapter_id", params.id),
-    supabase.from("exercises").select("id, title, description, game_type, position, grammar_topic_id, is_boss").eq("chapter_id", params.id).order("position"),
+    supabase.from("chapters").select("*").eq("id", id).single(),
+    supabase.from("vocab_items").select("*").eq("chapter_id", id).order("part_of_speech"),
+    supabase.from("grammar_topics").select("*").eq("chapter_id", id),
+    supabase.from("exercises").select("id, title, description, game_type, position, grammar_topic_id, is_boss").eq("chapter_id", id).order("position"),
     supabase.from("attempts").select("exercise_id, score_pct, completed_at").eq("student_id", user.id).not("completed_at","is",null),
     supabase.rpc("locked_chapters_for_me"),
   ]);
@@ -59,7 +60,7 @@ export default async function ChapterPage({ params }: { params: { id: string } }
   // bounce them back to /learn rather than letting them deep-link in.
   // Teachers / admins are never locked (the RPC returns empty for them).
   const isLocked = ((lockedRows as any[]) ?? []).some(
-    (r) => r.chapter_id === params.id
+    (r) => r.chapter_id === id
   );
   if (isLocked) redirect("/learn?locked=1");
 
@@ -89,7 +90,7 @@ export default async function ChapterPage({ params }: { params: { id: string } }
     return (
       <Link
         key={ex.id}
-        href={`/learn/chapter/${params.id}/exercise/${ex.id}`}
+        href={`/learn/chapter/${id}/exercise/${ex.id}`}
         className="card p-4 hover:shadow-md transition block"
       >
         <div className="flex items-center justify-between">
@@ -121,7 +122,7 @@ export default async function ChapterPage({ params }: { params: { id: string } }
         <section>
           <h2 className="h-display text-xl mb-3">Boss round</h2>
           <Link
-            href={`/learn/chapter/${params.id}/exercise/${boss.id}`}
+            href={`/learn/chapter/${id}/exercise/${boss.id}`}
             className="card p-5 hover:shadow-md transition block bg-gradient-to-r from-wine/10 to-gold/10 border-wine/30"
           >
             <div className="flex items-center justify-between">

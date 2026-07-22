@@ -12,7 +12,7 @@ function fmtDate(d: string | null) {
 }
 
 export default async function TeachersAdmin() {
-  const supabase = createClient();
+  const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
   const { data: profile } = await supabase

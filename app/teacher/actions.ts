@@ -15,7 +15,7 @@ function makeJoinCode() {
 export async function createClass(formData: FormData) {
   const name = (formData.get("name") as string)?.trim();
   if (!name) return;
-  const supabase = createClient();
+  const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
@@ -54,7 +54,7 @@ export async function setChapterLock(formData: FormData): Promise<void> {
   const locked = formData.get("locked") === "1";
   if (!classId || !chapterId) return;
 
-  const supabase = createClient();
+  const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
@@ -71,7 +71,7 @@ export async function setChapterLock(formData: FormData): Promise<void> {
 export async function rotateJoinCode(formData: FormData): Promise<void> {
   const classId = (formData.get("class_id") as string) || "";
   if (!classId) return;
-  const supabase = createClient();
+  const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 

@@ -10,7 +10,7 @@ type Result = {
 };
 
 async function requireAdmin() {
-  const supabase = createClient();
+  const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { supabase, user: null, profile: null };
   const { data: profile } = await supabase

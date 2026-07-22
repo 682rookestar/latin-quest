@@ -1,69 +1,9 @@
 "use server";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { scoreAnswer } from "@/lib/scoring";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-
-// ─── Scoring helpers (canonical server-side versions) ──────────────────────
-// These are the only authoritative scorers. The client component no longer
-// scores anything — it sends raw answers and receives results back.
-
-function strip(s: string): string {
-  return s
-    .normalize("NFD")
-    .replace(/[̀-ͯ]/g, "")
-    .toLowerCase()
-    // Replace all punctuation (including direct-speech marks) with spaces so
-    // students don't need to reproduce quotes, exclamation marks, etc.
-    .replace(/["""'''„«»!?.,;:()\[\]{}/\\—–\-]/g, " ")
-    .replace(/[^a-z0-9\s]/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
-}
-
-function stemWord(w: string): string {
-  return w
-    .replace(/(?:ing|tion|ness|ment)$/, "")
-    .replace(/(?:ed|er|est|ly)$/, "")
-    .replace(/es$/, "")
-    .replace(/s$/, "")
-    .replace(/e$/, "");
-}
-
-function eqLoose(student: string, correct: string): boolean {
-  return strip(student) === strip(correct);
-}
-
-function translationOk(student: string, correct: string): boolean {
-  const a = strip(student);
-  const b = strip(correct);
-  if (!a) return false;
-  if (a === b) return true;
-  const studentWords = a.split(" ");
-  const correctKeywords = b.split(" ").filter((w) => w.length > 3);
-  if (studentWords.length < Math.ceil(correctKeywords.length * 0.5)) return false;
-  const uniqueRatio = new Set(studentWords).size / studentWords.length;
-  if (studentWords.length > 3 && uniqueRatio < 0.6) return false;
-  const studentStems = new Set(studentWords.map(stemWord));
-  const hits = correctKeywords.filter((w) => studentStems.has(stemWord(w))).length;
-  return correctKeywords.length > 0 && hits / correctKeywords.length >= 0.8;
-}
-
-function scoreAnswer(
-  studentAnswer: string,
-  correctAnswer: string,
-  gameType: string,
-  metadata: unknown
-): boolean {
-  if (gameType === "word_type_sort") {
-    const md = metadata as { words?: { word: string; type: string }[] } | null;
-    const items = md?.words ?? [];
-    let studentObj: Record<string, string> = {};
-    try { studentObj = JSON.parse(studentAnswer); } catch { /* invalid JSON = wrong */ }
-    return items.every((it) => studentObj[it.word] === it.type);
-  }
-  if (gameType === "translation") return translationOk(studentAnswer, correctAnswer);
-  return eqLoose(studentAnswer, correctAnswer);
-}
 
 // ─── Per-question check (for immediate feedback) ────────────────────────────
 // Called after the student clicks "Check". Returns is_correct and the
@@ -72,7 +12,10 @@ export async function checkAnswer(
   questionId: string,
   studentAnswer: string
 ): Promise<{ is_correct: boolean; correct_answer: string }> {
-  const supabase = createClient();
+  if (!questionId || studentAnswer.length > 5000) {
+    return { is_correct: false, correct_answer: "" };
+  }
+  const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { is_correct: false, correct_answer: "" };
 
@@ -112,11 +55,19 @@ export async function submitExercise(
   results: { question_id: string; is_correct: boolean; correct_answer: string }[];
   badge_earned: boolean;
 }> {
-  const supabase = createClient();
+  const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error("Not authenticated");
 
   const questionIds = answers.map((a) => a.question_id);
+  if (
+    answers.length < 1 ||
+    answers.length > 100 ||
+    new Set(questionIds).size !== questionIds.length ||
+    answers.some((answer) => !answer.question_id || answer.student_answer.length > 5000)
+  ) {
+    throw new Error("Invalid answers");
+  }
 
   // Fetch canonical correct answers for every submitted question
   const { data: questions, error: qErr } = await supabase
@@ -150,8 +101,13 @@ export async function submitExercise(
     is_correct:     results[idx].is_correct,
   }));
 
-  const { data: summary, error: rpcErr } = await supabase
+  // This RPC is deliberately granted only to the service role. The browser
+  // and authenticated Supabase clients cannot submit their own correctness
+  // flags or progress values directly.
+  const admin = createAdminClient();
+  const { data: summary, error: rpcErr } = await admin
     .rpc("submit_exercise_attempt", {
+      p_student:     user.id,
       p_exercise_id: exerciseId,
       p_answers:     rpcPayload,
     })
@@ -178,7 +134,7 @@ export async function joinClass(formData: FormData): Promise<void> {
   if (!raw) {
     redirect("/learn/join?error=missing");
   }
-  const supabase = createClient();
+  const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 

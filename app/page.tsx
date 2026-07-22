@@ -16,7 +16,7 @@ function Emblem({ src, alt }: { src: string; alt: string }) {
 }
 
 export default async function LandingPage() {
-  const supabase = createClient();
+  const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
   const features = [

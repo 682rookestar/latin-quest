@@ -8,8 +8,9 @@ const ERROR_MESSAGES: Record<string, string> = {
   notfound: "That code isn't valid or has expired. Ask your teacher for the latest one.",
 };
 
-export default function JoinPage({ searchParams }: { searchParams: { error?: string } }) {
-  const errorKey = searchParams?.error;
+export default async function JoinPage({ searchParams }: { searchParams: Promise<{ error?: string }> }) {
+  const resolvedSearchParams = await searchParams;
+  const errorKey = resolvedSearchParams?.error;
   const msg = errorKey ? (ERROR_MESSAGES[errorKey] ?? "That code isn't valid. Please try again.") : null;
   return (
     <div className="max-w-md mx-auto card p-6 mt-12">

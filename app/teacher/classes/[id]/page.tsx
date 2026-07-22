@@ -12,8 +12,9 @@ const MASTERY_COLORS = [
   "bg-olive/70",
 ];
 
-export default async function ClassDetail({ params }: { params: { id: string } }) {
-  const supabase = createClient();
+export default async function ClassDetail({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
@@ -26,23 +27,19 @@ export default async function ClassDetail({ params }: { params: { id: string } }
 
   const { data: klass } = await supabase
     .from("classes")
-    .select("id, name, join_code, join_code_expires_at, teacher_id, profiles!classes_teacher_id_fkey(display_name, email)")
-    .eq("id", params.id)
+    .select("id, name, join_code, join_code_expires_at, teacher_id")
+    .eq("id", id)
+    .eq("teacher_id", user.id)
     .single();
   if (!klass) redirect("/teacher");
-  const isOwner = klass.teacher_id === user.id;
   const codeExpiresAt: string | null = (klass as any).join_code_expires_at ?? null;
   const codeExpired = codeExpiresAt ? new Date(codeExpiresAt).getTime() < Date.now() : false;
-  const ownerProfile: any = Array.isArray((klass as any).profiles)
-    ? (klass as any).profiles[0]
-    : (klass as any).profiles;
-  const ownerName = ownerProfile?.display_name ?? ownerProfile?.email ?? "Unknown";
 
   const [{ data: members }, { data: chapters }, { data: skills }, { data: progress }, { data: attempts }, { data: lockedRows }] = await Promise.all([
     supabase
       .from("class_members")
       .select("student_id, profiles(id, display_name, email)")
-      .eq("class_id", params.id),
+      .eq("class_id", id),
     supabase.from("chapters").select("id, number, title").order("number"),
     supabase.from("skills").select("id, code, display_name").order("display_name"),
     supabase
@@ -57,7 +54,7 @@ export default async function ClassDetail({ params }: { params: { id: string } }
     supabase
       .from("class_chapter_locks")
       .select("chapter_id")
-      .eq("class_id", params.id),
+      .eq("class_id", id),
   ]);
 
   const lockedChapterIds = new Set(
@@ -109,24 +106,15 @@ export default async function ClassDetail({ params }: { params: { id: string } }
               </span>
             )}
             <span className="text-sm text-ink/60">{members?.length ?? 0} student{members?.length === 1 ? "" : "s"}</span>
-            {!isOwner && (
-              <span className="chip-wine">View only &middot; teacher: {ownerName}</span>
-            )}
-            {isOwner && (
-              <form action={rotateJoinCode}>
-                <input type="hidden" name="class_id" value={klass.id} />
-                <button className="btn-ghost text-xs" type="submit">
-                  Rotate code
-                </button>
-              </form>
-            )}
+            <form action={rotateJoinCode}>
+              <input type="hidden" name="class_id" value={klass.id} />
+              <button className="btn-ghost text-xs" type="submit">
+                Rotate code
+              </button>
+            </form>
           </div>
           <p className="text-sm text-ink/60 mt-2">
-            {isOwner ? (
-              <>Share the join code with your students &mdash; they enter it at <code>/learn/join</code>. Rotate it whenever you need to revoke access.</>
-            ) : (
-              <>You are viewing another teacher&apos;s class. Only {ownerName} can edit or delete it.</>
-            )}
+            Share the join code with your students &mdash; they enter it at <code>/learn/join</code>. Rotate it whenever you need to revoke access.
           </p>
         </div>
         <a
@@ -141,9 +129,7 @@ export default async function ClassDetail({ params }: { params: { id: string } }
       <section>
         <h2 className="text-xl font-semibold mb-1">Chapter access</h2>
         <p className="text-sm text-ink/60 mb-3">
-          {isOwner
-            ? "Toggle a chapter Locked to hide it from your students on /learn. Open by default."
-            : `View only — only ${ownerName} can change locks for this class.`}
+          Toggle a chapter Locked to hide it from your students on /learn. Open by default.
         </p>
         <div className="card p-3 grid sm:grid-cols-2 lg:grid-cols-3 gap-2">
           {chapters?.map((ch: any) => {
@@ -165,7 +151,6 @@ export default async function ClassDetail({ params }: { params: { id: string } }
                 <input type="hidden" name="locked" value={locked ? "0" : "1"} />
                 <button
                   type="submit"
-                  disabled={!isOwner}
                   className={`text-xs px-2 py-1 rounded whitespace-nowrap ${
                     locked
                       ? "bg-wine text-parchment hover:bg-wine/90"

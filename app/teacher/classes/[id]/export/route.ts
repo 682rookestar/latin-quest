@@ -15,28 +15,32 @@ function fmtDate(s: string | null | undefined) {
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
-  const supabase = createClient();
+  const { id } = await params;
+  const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Unauthorised" }, { status: 401 });
 
-  // Any teacher may export any class; only block non-teachers.
+  // Exports contain identifiable pupil data. Teachers may export only their
+  // own classes; administrators retain platform-wide oversight.
   const { data: teacherProfile } = await supabase
     .from("profiles")
     .select("role")
     .eq("id", user.id)
     .single();
-  if (teacherProfile?.role !== "teacher")
+  if (!teacherProfile || !["teacher", "admin"].includes(teacherProfile.role))
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const { data: klass } = await supabase
     .from("classes")
     .select("id, name, teacher_id, join_code")
-    .eq("id", params.id)
+    .eq("id", id)
     .single();
   if (!klass)
     return NextResponse.json({ error: "Not found" }, { status: 404 });
+  if (teacherProfile.role === "teacher" && klass.teacher_id !== user.id)
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   // Optional ?student=<uuid> filters to one student
   const studentFilter = req.nextUrl.searchParams.get("student");
@@ -45,7 +49,7 @@ export async function GET(
     supabase
       .from("class_members")
       .select("student_id, profiles(id, display_name, email)")
-      .eq("class_id", params.id),
+      .eq("class_id", id),
     supabase.from("chapters").select("id, number, title").order("number"),
     supabase.from("skills").select("id, code, display_name").order("display_name"),
   ]);

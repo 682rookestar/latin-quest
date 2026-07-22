@@ -10,7 +10,7 @@ export const metadata: Metadata = {
 };
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
-  const supabase = createClient();
+  const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
   let role: string | null = null;
@@ -30,7 +30,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             <Link href="/" className="flex items-center gap-2 group">
               <span
                 aria-hidden
-                className="inline-flex h-7 w-7 items-center justify-center rounded-md text-white font-bold"
+                className="inline-flex h-7 w-7 items-center justify-center rounded-md text-parchment font-bold"
                 style={{ background: "#22D3EE", boxShadow: "0 0 16px -4px rgba(34,211,238,0.6)" }}
               >LQ</span>
               <span className="h-display tracking-wide group-hover:text-sky transition text-lg">Latin Quest</span>
@@ -65,11 +65,11 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           <div className="h-display text-gold text-sm tracking-[0.3em] text-center">
             Lingua Latina · Potentia Aeterna
           </div>
-          <div className="text-xs text-ink/45 text-center mt-3">
+          <div className="text-xs text-ink/70 text-center mt-3">
             Latin Quest © {new Date().getFullYear()}
           </div>
-          <div className="text-xs text-ink/30 text-center mt-2">
-            <Link href="/privacy" className="hover:text-ink/60 transition-colors">Privacy Policy</Link>
+          <div className="text-xs text-ink/70 text-center mt-2">
+            <Link href="/privacy" className="underline hover:text-white transition-colors">Privacy Policy</Link>
           </div>
         </footer>
       </body>

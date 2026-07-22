@@ -8,14 +8,15 @@ const BOSS_SAMPLE_SIZE = 15;
 export default async function ExercisePage({
   params,
 }: {
-  params: { id: string; exId: string };
+  params: Promise<{ id: string; exId: string }>;
 }) {
-  const supabase = createClient();
+  const { id, exId } = await params;
+  const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
   const { data: exercise } = await supabase
-    .from("exercises").select("*").eq("id", params.exId).single();
+    .from("exercises").select("*").eq("id", exId).single();
   if (!exercise) notFound();
 
   // Honour the per-class chapter lock here too -- a student could
@@ -78,7 +79,7 @@ export default async function ExercisePage({
     const { data: own } = await supabase
       .from("exercise_questions")
       .select("*")
-      .eq("exercise_id", params.exId)
+      .eq("exercise_id", exId)
       .order("position");
 
     const list = [...(own ?? [])];
@@ -129,7 +130,7 @@ export default async function ExercisePage({
     <ExerciseRunner
       exercise={exercise}
       questions={publicQuestions}
-      backHref={`/learn/chapter/${params.id}`}
+      backHref={`/learn/chapter/${id}`}
     />
   );
 }

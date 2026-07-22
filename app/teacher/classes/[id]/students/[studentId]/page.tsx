@@ -20,13 +20,14 @@ function fmtDate(s: string | null | undefined) {
 export default async function StudentDetail({
   params,
 }: {
-  params: { id: string; studentId: string };
+  params: Promise<{ id: string; studentId: string }>;
 }) {
-  const supabase = createClient();
+  const { id, studentId } = await params;
+  const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  // Any teacher can view any class; non-owners are flagged as view-only on the class page.
+  // Pupil records are limited to classes owned by the signed-in teacher.
   const { data: teacherProfile } = await supabase
     .from("profiles")
     .select("role")
@@ -37,23 +38,19 @@ export default async function StudentDetail({
   const { data: klass } = await supabase
     .from("classes")
     .select("id, name, teacher_id, profiles!classes_teacher_id_fkey(display_name, email)")
-    .eq("id", params.id)
+    .eq("id", id)
+    .eq("teacher_id", user.id)
     .single();
   if (!klass) redirect("/teacher");
-  const isOwner = klass.teacher_id === user.id;
-  const ownerProfile: any = Array.isArray((klass as any).profiles)
-    ? (klass as any).profiles[0]
-    : (klass as any).profiles;
-  const ownerName = ownerProfile?.display_name ?? ownerProfile?.email ?? "Unknown";
 
   // Verify student is in this class (and grab their profile)
   const { data: membership } = await supabase
     .from("class_members")
     .select("student_id, profiles(id, display_name, email)")
-    .eq("class_id", params.id)
-    .eq("student_id", params.studentId)
+    .eq("class_id", id)
+    .eq("student_id", studentId)
     .maybeSingle();
-  if (!membership) redirect(`/teacher/classes/${params.id}`);
+  if (!membership) redirect(`/teacher/classes/${id}`);
 
   const profile: any = Array.isArray((membership as any).profiles)
     ? (membership as any).profiles[0]
@@ -65,11 +62,11 @@ export default async function StudentDetail({
     supabase
       .from("skill_progress")
       .select("chapter_id, skill_id, attempts, correct, mastery, last_attempted_at")
-      .eq("student_id", params.studentId),
+      .eq("student_id", studentId),
     supabase
       .from("attempts")
       .select("id, exercise_id, score_pct, started_at, completed_at, total_questions, correct_questions, exercises(title, chapter_id, game_type, chapters(number, title))")
-      .eq("student_id", params.studentId)
+      .eq("student_id", studentId)
       .not("completed_at", "is", null)
       .order("completed_at", { ascending: false })
       .limit(100),
@@ -97,7 +94,7 @@ export default async function StudentDetail({
 
   return (
     <div className="space-y-8">
-      <Link href={`/teacher/classes/${params.id}`} className="text-sm text-ink/60 hover:underline">
+      <Link href={`/teacher/classes/${id}`} className="text-sm text-ink/60 hover:underline">
         &lsaquo; back to {klass.name}
       </Link>
 
@@ -109,13 +106,10 @@ export default async function StudentDetail({
           <div className="flex items-center gap-3 mt-2 flex-wrap">
             <span className="chip-wine">{totalAttempts} attempt{totalAttempts === 1 ? "" : "s"}</span>
             {totalAttempts > 0 && <span className="chip-olive">avg {avg}%</span>}
-            {!isOwner && (
-              <span className="chip-wine">View only &middot; teacher: {ownerName}</span>
-            )}
           </div>
         </div>
         <a
-          href={`/teacher/classes/${params.id}/export?student=${params.studentId}`}
+          href={`/teacher/classes/${id}/export?student=${studentId}`}
           className="btn-gold whitespace-nowrap"
           download
         >
