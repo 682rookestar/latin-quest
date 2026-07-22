@@ -26,8 +26,8 @@ The following facts must be completed before these documents are signed off:
 1. Monitored privacy email and escalation contact.
 2. Operator's exact legal identity and business/contact address.
 3. Whether Latin Quest is operated personally, by a company, or by a school.
-4. Vercel plan and confirmation that the applicable DPA is contractually in
-   force.
+4. Archived evidence of the Vercel Pro subscription and the applicable DPA;
+   Pro status was confirmed by the account owner on 22 July 2026.
 5. Supabase DPA acceptance and current subprocessor list review.
 6. School contract model and the controller/processor allocation for each use.
 7. Agreed contract-end and inactivity retention periods.
