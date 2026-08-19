@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { rotateJoinCode, setChapterLock } from "@/app/teacher/actions";
+import ClassLifecycleForm from "@/components/ClassLifecycleForm";
 
 const MASTERY_COLORS = [
   "bg-ink/5",
@@ -27,11 +28,12 @@ export default async function ClassDetail({ params }: { params: Promise<{ id: st
 
   const { data: klass } = await supabase
     .from("classes")
-    .select("id, name, join_code, join_code_expires_at, teacher_id")
+    .select("id, name, join_code, join_code_expires_at, teacher_id, archived_at")
     .eq("id", id)
     .eq("teacher_id", user.id)
     .single();
   if (!klass) redirect("/teacher");
+  if ((klass as any).archived_at) redirect("/teacher");
   const codeExpiresAt: string | null = (klass as any).join_code_expires_at ?? null;
   const codeExpired = codeExpiresAt ? new Date(codeExpiresAt).getTime() < Date.now() : false;
 
@@ -314,6 +316,18 @@ export default async function ClassDetail({ params }: { params: Promise<{ id: st
             })}
           </ul>
         )}
+      </section>
+
+      <section className="card p-5 border border-wine/30">
+        <h2 className="h-display text-xl text-wine mb-1">Archive this class</h2>
+        <p className="text-sm text-ink/70 mb-4">
+          Archiving immediately disables the join code and removes this class from student access. You can restore it for 30 days with all memberships intact. Student attempts and progress are not deleted.
+        </p>
+        <ClassLifecycleForm
+          classId={klass.id}
+          className={klass.name}
+          action="archive"
+        />
       </section>
     </div>
   );

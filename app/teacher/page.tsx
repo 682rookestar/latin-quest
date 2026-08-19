@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { createClass } from "./actions";
 import PageHero from "@/components/PageHero";
+import ClassLifecycleForm from "@/components/ClassLifecycleForm";
 
 export default async function TeacherHome() {
   const supabase = await createClient();
@@ -19,11 +20,12 @@ export default async function TeacherHome() {
   // administrators and is intentionally kept out of the teacher role.
   const { data: classes } = await supabase
     .from("classes")
-    .select("id, name, join_code, teacher_id, created_at, class_members(count)")
+    .select("id, name, join_code, teacher_id, created_at, archived_at, deletion_scheduled_at, class_members(count)")
     .eq("teacher_id", user.id)
     .order("created_at", { ascending: false });
 
-  const mine = (classes ?? []) as any[];
+  const mine = ((classes ?? []) as any[]).filter((c) => !c.archived_at);
+  const archived = ((classes ?? []) as any[]).filter((c) => c.archived_at);
 
   function ClassCard({ c }: { c: any }) {
     const count = (c.class_members as any)?.[0]?.count ?? 0;
@@ -71,6 +73,33 @@ export default async function TeacherHome() {
           </div>
         )}
       </section>
+
+      {archived.length > 0 && (
+        <section>
+          <h2 className="h-display text-xl mb-1">Archived classes</h2>
+          <p className="text-sm text-ink/60 mb-3">
+            Archived classes cannot be joined and no longer affect student access. Restore within 30 days; student attempts and progress are retained.
+          </p>
+          <div className="space-y-3">
+            {archived.map((c) => (
+              <div key={c.id} className="card p-4 space-y-3">
+                <div>
+                  <h3 className="font-semibold">{c.name}</h3>
+                  <p className="text-xs text-ink/60">
+                    Restore available until {new Date(c.deletion_scheduled_at).toLocaleDateString()}
+                  </p>
+                </div>
+                <ClassLifecycleForm
+                  classId={c.id}
+                  className={c.name}
+                  action="restore"
+                  compact
+                />
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
     </div>
   );
 }
