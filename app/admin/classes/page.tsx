@@ -121,6 +121,11 @@ export default async function AdminClasses() {
                     </>
                   ) : (
                     <div className="space-y-4 max-w-xl">
+                      <TransferOwnerForm
+                        classId={c.id}
+                        currentOwnerId={c.teacher_id}
+                        owners={owners}
+                      />
                       <p className="text-xs text-ink/60">
                         {canDelete
                           ? "The 30-day recovery period has ended."

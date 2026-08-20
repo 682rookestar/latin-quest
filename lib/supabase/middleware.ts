@@ -32,9 +32,19 @@ export async function updateSession(request: NextRequest) {
   if (user && isStaffRoute) {
     const { data: profile } = await supabase
       .from("profiles")
-      .select("role")
+      .select("role, disabled_at")
       .eq("id", user.id)
       .single();
+
+    if (profile?.disabled_at) {
+      await supabase.auth.signOut();
+      const url = request.nextUrl.clone();
+      url.pathname = "/login";
+      url.search = "?error=account_disabled";
+      const redirectResponse = NextResponse.redirect(url);
+      response.cookies.getAll().forEach((cookie) => redirectResponse.cookies.set(cookie));
+      return redirectResponse;
+    }
 
     if (["teacher", "admin"].includes(profile?.role ?? "")) {
       const { data: assurance } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();

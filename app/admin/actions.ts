@@ -10,6 +10,11 @@ type Result = {
   link?: string | null;
 };
 
+export type TeacherAccountResult = {
+  ok: boolean;
+  message: string;
+};
+
 async function requireAdmin() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -188,6 +193,147 @@ export async function resetTeacherPassword(
     message: `Temporary password for ${targetProfile.email}. They should change it from /account on first sign-in.`,
     tempPassword,
   };
+}
+
+export async function manageTeacherAccount(
+  _prev: TeacherAccountResult | null,
+  formData: FormData
+): Promise<TeacherAccountResult> {
+  const targetId = String(formData.get("target_id") ?? "");
+  const action = String(formData.get("account_action") ?? "").toLowerCase();
+  const confirmation = String(formData.get("confirmation") ?? "").trim().toLowerCase();
+
+  if (!targetId || !["disable", "restore", "remove"].includes(action)) {
+    return { ok: false, message: "Invalid teacher account action." };
+  }
+
+  const { user, profile } = await requireAdmin();
+  if (!user) return { ok: false, message: "You must be signed in." };
+  if (profile?.role !== "admin") return { ok: false, message: "Admin access only." };
+  if (targetId === user.id) {
+    return { ok: false, message: "You cannot manage your own account here." };
+  }
+
+  const admin = createAdminClient();
+  const { data: target, error: targetError } = await admin
+    .from("profiles")
+    .select("id, email, display_name, role, disabled_at")
+    .eq("id", targetId)
+    .single();
+
+  if (targetError || !target) return { ok: false, message: "Teacher account not found." };
+  if (target.role !== "teacher") {
+    return { ok: false, message: "Administrator accounts cannot be managed here." };
+  }
+
+  const normalizedEmail = target.email.trim().toLowerCase();
+  const expected = action === "remove" ? `delete ${normalizedEmail}` : normalizedEmail;
+  if (confirmation !== expected) {
+    return { ok: false, message: "The confirmation text does not match." };
+  }
+
+  const auditEntry = {
+    target_user_id: target.id,
+    target_email: target.email,
+    target_display_name: target.display_name,
+    actor_id: user.id,
+    actor_email: user.email ?? null,
+    action,
+  };
+
+  if (action === "disable") {
+    if (target.disabled_at) return { ok: false, message: "This teacher is already disabled." };
+
+    const disabledAt = new Date().toISOString();
+    const { error: profileError } = await admin
+      .from("profiles")
+      .update({ disabled_at: disabledAt, disabled_by: user.id })
+      .eq("id", targetId)
+      .eq("role", "teacher");
+    if (profileError) return { ok: false, message: "Could not disable this teacher." };
+
+    const { error: banError } = await admin.auth.admin.updateUserById(targetId, {
+      ban_duration: "876000h",
+    });
+    if (banError) {
+      await admin.from("profiles").update({ disabled_at: null, disabled_by: null }).eq("id", targetId);
+      return { ok: false, message: `Could not disable login: ${banError.message}` };
+    }
+
+    const { error: auditError } = await admin.from("teacher_account_audit").insert(auditEntry);
+    if (auditError) {
+      await admin.auth.admin.updateUserById(targetId, { ban_duration: "none" });
+      await admin.from("profiles").update({ disabled_at: null, disabled_by: null }).eq("id", targetId);
+      return { ok: false, message: "The audit record failed, so the account was not disabled." };
+    }
+  }
+
+  if (action === "restore") {
+    if (!target.disabled_at) return { ok: false, message: "This teacher is already active." };
+
+    const { error: unbanError } = await admin.auth.admin.updateUserById(targetId, {
+      ban_duration: "none",
+    });
+    if (unbanError) return { ok: false, message: `Could not restore login: ${unbanError.message}` };
+
+    const { error: profileError } = await admin
+      .from("profiles")
+      .update({ disabled_at: null, disabled_by: null })
+      .eq("id", targetId)
+      .eq("role", "teacher");
+    if (profileError) {
+      await admin.auth.admin.updateUserById(targetId, { ban_duration: "876000h" });
+      return { ok: false, message: "Could not restore this teacher." };
+    }
+
+    const { error: auditError } = await admin.from("teacher_account_audit").insert(auditEntry);
+    if (auditError) {
+      await admin.from("profiles").update({ disabled_at: new Date().toISOString(), disabled_by: user.id }).eq("id", targetId);
+      await admin.auth.admin.updateUserById(targetId, { ban_duration: "876000h" });
+      return { ok: false, message: "The audit record failed, so the account remained disabled." };
+    }
+  }
+
+  if (action === "remove") {
+    if (!target.disabled_at) {
+      return { ok: false, message: "Disable this teacher before permanently removing them." };
+    }
+
+    const { count, error: classError } = await admin
+      .from("classes")
+      .select("id", { count: "exact", head: true })
+      .eq("teacher_id", targetId);
+    if (classError) return { ok: false, message: "Could not check the teacher's classes." };
+    if ((count ?? 0) > 0) {
+      return { ok: false, message: "Transfer or delete all of this teacher's classes first." };
+    }
+
+    const { data: audit, error: auditError } = await admin
+      .from("teacher_account_audit")
+      .insert(auditEntry)
+      .select("id")
+      .single();
+    if (auditError || !audit) return { ok: false, message: "Could not create the removal audit record." };
+
+    const { error: deleteError } = await admin.auth.admin.deleteUser(targetId, false);
+    if (deleteError) {
+      await admin.from("teacher_account_audit").delete().eq("id", audit.id);
+      return { ok: false, message: `Could not remove teacher: ${deleteError.message}` };
+    }
+
+    await admin.from("teacher_invites").delete().eq("email", target.email);
+  }
+
+  revalidatePath("/admin/teachers");
+  revalidatePath("/admin/classes");
+  revalidatePath("/admin");
+
+  const messages: Record<string, string> = {
+    disable: "Teacher disabled. Existing class and pupil access is blocked immediately.",
+    restore: "Teacher access restored.",
+    remove: "Teacher account permanently removed. Student records and audit history were retained.",
+  };
+  return { ok: true, message: messages[action] };
 }
 
 export async function transferClassOwnership(

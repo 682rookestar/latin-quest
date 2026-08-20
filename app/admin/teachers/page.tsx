@@ -5,6 +5,7 @@ import CopyLinkButton from "./CopyLinkButton";
 import ResetPasswordButton from "./ResetPasswordButton";
 import { revokeInvite } from "../actions";
 import PageHero from "@/components/PageHero";
+import TeacherAccountActions from "./TeacherAccountActions";
 
 function fmtDate(d: string | null) {
   if (!d) return "—";
@@ -19,17 +20,33 @@ export default async function TeachersAdmin() {
     .from("profiles").select("role").eq("id", user.id).single();
   if (profile?.role !== "admin") redirect("/dashboard");
 
-  const [{ data: teachers }, { data: invites }] = await Promise.all([
+  const [
+    { data: teachers },
+    { data: invites },
+    { data: ownedClasses },
+    { data: accountAudit },
+  ] = await Promise.all([
     supabase
       .from("profiles")
-      .select("id, email, display_name, created_at, role")
+      .select("id, email, display_name, created_at, role, disabled_at")
       .in("role", ["teacher", "admin"])
       .order("created_at", { ascending: false }),
     supabase
       .from("teacher_invites")
       .select("id, email, created_at, expires_at, accepted_at, accepted_by, action_link, action_link_sent_at")
       .order("created_at", { ascending: false }),
+    supabase.from("classes").select("teacher_id"),
+    supabase
+      .from("teacher_account_audit")
+      .select("id, target_email, target_display_name, actor_email, action, occurred_at")
+      .order("occurred_at", { ascending: false })
+      .limit(50),
   ]);
+
+  const classCounts = new Map<string, number>();
+  for (const klass of (ownedClasses as any[]) ?? []) {
+    classCounts.set(klass.teacher_id, (classCounts.get(klass.teacher_id) ?? 0) + 1);
+  }
 
   // Match invites against profiles so we can tell who has actually
   // become a teacher vs. is still mid-signup. With admin.generateLink
@@ -113,6 +130,7 @@ export default async function TeachersAdmin() {
           <ul className="card divide-y divide-ink/10">
             {(teachers as any[]).map((t) => {
               const canReset = t.role === "teacher" && t.id !== user.id;
+              const classCount = classCounts.get(t.id) ?? 0;
               return (
                 <li key={t.id} className="p-3 space-y-2">
                   <div className="flex items-center justify-between gap-3">
@@ -121,6 +139,9 @@ export default async function TeachersAdmin() {
                         {t.display_name ?? t.email}
                         {t.role === "admin" && (
                           <span className="ml-2 chip-gold">admin</span>
+                        )}
+                        {t.disabled_at && (
+                          <span className="ml-2 chip-wine">disabled</span>
                         )}
                       </div>
                       <div className="text-xs text-ink/60">{t.email}</div>
@@ -134,10 +155,51 @@ export default async function TeachersAdmin() {
                       )}
                     </div>
                   </div>
+                  {canReset && (
+                    <TeacherAccountActions
+                      targetId={t.id}
+                      email={t.email}
+                      disabledAt={t.disabled_at}
+                      classCount={classCount}
+                    />
+                  )}
                 </li>
               );
             })}
           </ul>
+        )}
+      </section>
+
+      <section>
+        <h2 className="h-display text-xl mb-1">Teacher account audit</h2>
+        <p className="text-sm text-ink/60 mb-3">
+          Administrator actions are retained even after a teacher account is removed.
+        </p>
+        {!accountAudit?.length ? (
+          <p className="text-ink/60">No teacher account actions recorded yet.</p>
+        ) : (
+          <div className="card overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="text-left border-b border-ink/10">
+                <tr>
+                  <th className="p-3">Date</th>
+                  <th className="p-3">Action</th>
+                  <th className="p-3">Teacher</th>
+                  <th className="p-3">Administrator</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-ink/10">
+                {(accountAudit as any[]).map((entry) => (
+                  <tr key={entry.id}>
+                    <td className="p-3 whitespace-nowrap">{fmtDate(entry.occurred_at)}</td>
+                    <td className="p-3 capitalize">{entry.action}</td>
+                    <td className="p-3">{entry.target_display_name ?? entry.target_email}</td>
+                    <td className="p-3">{entry.actor_email ?? "Removed administrator"}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
       </section>
     </div>

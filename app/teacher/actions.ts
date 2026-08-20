@@ -115,10 +115,10 @@ export async function manageClassLifecycle(
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("role")
+    .select("role, disabled_at")
     .eq("id", user.id)
     .single();
-  if (!profile || !["teacher", "admin"].includes(profile.role)) {
+  if (!profile || !["teacher", "admin"].includes(profile.role) || profile.disabled_at) {
     return { ok: false, message: "Staff access only." };
   }
   if (!(await hasAal2(supabase))) {
