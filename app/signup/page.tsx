@@ -5,6 +5,8 @@ import Link from "next/link";
 import Image from "next/image";
 import { createClient } from "@/lib/supabase/client";
 
+const STUDENT_EMAIL_DOMAIN = "hallifordschool.co.uk";
+
 export default function SignupPage() {
   const router = useRouter();
   const [email, setEmail] = useState("");
@@ -19,6 +21,14 @@ export default function SignupPage() {
     setLoading(true);
     setError(null);
 
+    const normalizedEmail = email.trim().toLowerCase();
+    const emailDomain = normalizedEmail.split("@")[1] ?? "";
+    if (emailDomain !== STUDENT_EMAIL_DOMAIN) {
+      setLoading(false);
+      setError(`Please use your @${STUDENT_EMAIL_DOMAIN} school email address.`);
+      return;
+    }
+
     const supabase = createClient();
 
     const cleanCode = code.replace(/\s+/g, "").toUpperCase();
@@ -32,7 +42,7 @@ export default function SignupPage() {
     }
 
     const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
-      email,
+      email: normalizedEmail,
       password,
       options: {
         data: { display_name: displayName, join_code: cleanCode },
@@ -105,7 +115,18 @@ export default function SignupPage() {
             autoComplete="off"
           />
           <input className="input" placeholder="full name" value={displayName} onChange={e => setDisplayName(e.target.value)} required />
-          <input className="input" type="email" placeholder="email" value={email} onChange={e => setEmail(e.target.value)} required />
+          <input
+            className="input"
+            type="email"
+            placeholder={`school email (@${STUDENT_EMAIL_DOMAIN})`}
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
+            autoComplete="email"
+          />
+          <p className="text-xs text-white/40 -mt-2">
+            Student accounts require a @{STUDENT_EMAIL_DOMAIN} address.
+          </p>
           <input className="input" type="password" placeholder="password (min 12 chars)" value={password} onChange={e => setPassword(e.target.value)} required minLength={12} autoComplete="new-password" />
           {error && <p className="text-wine text-sm">{error}</p>}
           <button className="btn-primary w-full" disabled={loading}>{loading ? "Creating account…" : "Create account"}</button>
