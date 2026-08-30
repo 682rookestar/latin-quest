@@ -45,6 +45,11 @@ export type StyleCheck = {
 
 const contractions = /\b(?:can't|cannot've|couldn't|didn't|doesn't|don't|hadn't|hasn't|haven't|he's|I'd|I'll|I'm|isn't|it's|she's|shouldn't|they're|wasn't|weren't|we're|won't|wouldn't|you'll|you're)\b/i;
 const wellWishingEnding = /(?:good luck|well done|keep it up|best wishes|for the future|next year)[.!\s]*$/i;
+const excludedReportMetrics = /(?:\d+(?:\.\d+)?\s*%|\b(?:badge|badges)\b)/i;
+
+export function containsExcludedReportMetrics(comment: string) {
+  return excludedReportMetrics.test(comment);
+}
 
 export function checkHallifordStyle(comment: string, preferredName: string): StyleCheck[] {
   const text = comment.trim();
@@ -86,6 +91,9 @@ export function checkHallifordStyle(comment: string, preferredName: string): Sty
   if (/\byear\s+[7-9]\b/.test(text)) {
     checks.push({ level: "warning", message: "Capitalise year groups, for example 'Year 7'." });
   }
+  if (containsExcludedReportMetrics(text)) {
+    checks.push({ level: "warning", message: "Remove percentages and badge references from the report." });
+  }
   if (!checks.some((check) => check.level === "warning" || check.level === "error")) {
     checks.push({ level: "pass", message: "No additional Halliford house-style issues found." });
   }
@@ -96,23 +104,39 @@ export function buildReportPrompt({
   preferredName,
   className,
   evidence,
-  inputs,
 }: {
   preferredName: string;
   className: string;
   evidence: ReportingEvidence;
   inputs: ReportInputs;
 }) {
+  const rankedSkills = [...evidence.skillBreakdown]
+    .filter((skill) => skill.attempts > 0)
+    .sort((a, b) => b.accuracy - a.accuracy);
+  const strengthSkills = rankedSkills.slice(0, 3).map((skill) => skill.skill);
+  const developmentSkills = rankedSkills
+    .slice(-3)
+    .map((skill) => skill.skill)
+    .filter((skill) => !strengthSkills.includes(skill));
+  const qualitativeEvidence = {
+    strongestChapter: evidence.strongestChapter,
+    developmentChapter: evidence.developmentChapter,
+    strengthSkills,
+    developmentSkills,
+  };
+
   return `Write a Halliford School Latin subject report comment for ${preferredName}.
 
-Use only the supplied Latin Quest evidence. Do not invent personality, classroom behaviour, pastoral circumstances, awards, school values, assessment results or improvement claims. Do not mention email addresses or technical identifiers.
+Use only the supplied qualitative Latin Quest evidence. Focus exclusively on the pupil's strengths and areas for development. Do not invent personality, classroom behaviour, pastoral circumstances, awards, school values, assessment results or improvement claims. Do not mention email addresses or technical identifiers.
 
 Required style:
 - 300 to 1,200 characters including spaces.
 - Professional, warm, specific British English.
 - Mix ${preferredName}'s name with suitable pronouns; do not over-repeat the name.
 - Mention Latin Quest naturally because it is used heavily.
-- Include a concrete strength and a tangible next step.
+- Give balanced coverage to concrete strengths and clear areas for development.
+- Do not include percentages, scores, grades, activity totals, question totals, mastery numbers or badges.
+- Do not refer to the amount or frequency of practice.
 - Do not use contractions or exclamation marks.
 - Do not end with a well-wishing sentence or fragment.
 - Use 'homework', 'hardworking', 'Year 7', 'Progress Grade' and 'Challenge Grade' exactly if relevant.
@@ -120,8 +144,7 @@ Required style:
 
 Class: ${className}
 Reporting period: ${evidence.period.name}, ${evidence.period.startsOn} to ${evidence.period.endsOn}
-Latin Quest evidence: ${JSON.stringify(evidence)}
-Optional staff context (normally blank): ${JSON.stringify(inputs)}
+Qualitative Latin Quest evidence: ${JSON.stringify(qualitativeEvidence)}
 
 Return only the finished report comment.`;
 }

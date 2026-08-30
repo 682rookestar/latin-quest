@@ -8,6 +8,7 @@ import { createClient } from "@/lib/supabase/server";
 import {
   buildReportPrompt,
   checkHallifordStyle,
+  containsExcludedReportMetrics,
   type ReportInputs,
   type ReportingEvidence,
 } from "@/lib/reporting";
@@ -298,6 +299,9 @@ export async function generateStudentReport(
     });
     const draft = text.trim();
     if (!draft) return { ok: false, message: "The drafting service returned an empty response." };
+    if (containsExcludedReportMetrics(draft)) {
+      return { ok: false, message: "The generated report included a percentage or badge reference. Please generate it again." };
+    }
     if (draft.length > 1200) {
       return { ok: false, message: "The generated draft exceeded Halliford's 1,200-character limit. Please generate it again." };
     }

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildReportPrompt, checkHallifordStyle } from "@/lib/reporting";
+import { buildReportPrompt, checkHallifordStyle, containsExcludedReportMetrics } from "@/lib/reporting";
 
 const validComment =
   "William has approached Latin lessons with steady engagement and has used Latin Quest regularly to consolidate vocabulary. His accurate work in Chapter 2 demonstrates secure recall and increasingly confident application of grammar. William should now focus on checking noun endings carefully and completing short, frequent practice sessions so that this accuracy is sustained in unfamiliar translation tasks.";
@@ -21,6 +21,11 @@ describe("Halliford report validation", () => {
     const checks = checkHallifordStyle(comment, "William");
     expect(checks.some((check) => check.message.includes("contractions"))).toBe(true);
     expect(checks.some((check) => check.message.includes("well-wishing"))).toBe(true);
+  });
+
+  it("detects percentages and badge references", () => {
+    expect(containsExcludedReportMetrics("William achieved 82% and earned a badge.")).toBe(true);
+    expect(containsExcludedReportMetrics(validComment)).toBe(false);
   });
 });
 
@@ -58,5 +63,9 @@ describe("report drafting prompt", () => {
     });
     expect(prompt).toContain("Do not invent");
     expect(prompt).toContain("Do not mention email addresses");
+    expect(prompt).toContain("strengths and areas for development");
+    expect(prompt).not.toContain('"averageScore":80');
+    expect(prompt).not.toContain('"badges"');
+    expect(prompt).not.toContain('"attemptCount"');
   });
 });
