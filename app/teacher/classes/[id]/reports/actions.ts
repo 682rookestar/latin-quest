@@ -12,7 +12,7 @@ import {
   type ReportingEvidence,
 } from "@/lib/reporting";
 
-const REPORT_AI_MODEL = process.env.REPORT_AI_MODEL?.trim() || "openai/gpt-5.6-luna";
+const REPORT_AI_MODEL = process.env.REPORT_AI_MODEL?.trim() || "inclusionai/ling-3.0-flash-fin-free";
 
 export type ReportActionResult = { ok: boolean; message: string };
 
@@ -332,7 +332,7 @@ export async function generateStudentReport(
       studentId,
       error: error instanceof Error ? error.message : String(error),
     });
-    return { ok: false, message: "The AI drafting service is unavailable. Your observations have not been lost." };
+    return { ok: false, message: "The report generator is temporarily unavailable. Please try again shortly." };
   }
 }
 
