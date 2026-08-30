@@ -34,6 +34,9 @@ export default async function LearnHome({
   const lockedChapterIds = new Set(
     ((lockedRows as any[]) ?? []).map((r) => r.chapter_id)
   );
+  // An archived class is intentionally hidden by RLS while its membership is
+  // retained for recovery. Do not let that hidden relation break the pupil page.
+  const visibleMemberships = ((memberships as any[]) ?? []).filter((membership) => membership.classes);
 
   // Build a lookup map: chapter_id → progress row
   const progressMap: Record<string, {
@@ -70,11 +73,11 @@ export default async function LearnHome({
           {/* Classes / join */}
           <div className="card p-4 mt-4">
             <h2 className="h-display text-xs tracking-widest text-gold mb-2">Your Classes</h2>
-            {!memberships?.length ? (
+            {!visibleMemberships.length ? (
               <p className="text-xs text-ink/50">No classes yet.</p>
             ) : (
               <ul className="text-xs space-y-1 mb-2">
-                {memberships.map((m: any) => (
+                {visibleMemberships.map((m: any) => (
                   <li key={m.classes.id} className="flex items-center gap-2">
                     <span className="chip-gold text-[10px] px-1.5 py-0.5">{m.classes.join_code}</span>
                     <span className="truncate text-white/70">{m.classes.name}</span>
@@ -93,11 +96,11 @@ export default async function LearnHome({
           {/* Mobile: classes card */}
           <div className="lg:hidden card p-5">
             <h2 className="font-semibold mb-2">Your classes</h2>
-            {!memberships?.length ? (
+            {!visibleMemberships.length ? (
               <p className="text-sm text-ink/60">You haven't joined any classes yet.</p>
             ) : (
               <ul className="text-sm space-y-1">
-                {memberships.map((m: any) => (
+                {visibleMemberships.map((m: any) => (
                   <li key={m.classes.id}>
                     <span className="chip-gold mr-2">{m.classes.join_code}</span>
                     {m.classes.name}

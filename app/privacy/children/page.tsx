@@ -22,8 +22,10 @@ export default function ChildPrivacyPage() {
       <Card title="Why do we use it?">
         To sign you in, mark activities, show your progress and help your teacher
         see where you may need more practice. Your previous answers can affect
-        which questions are shown first. Computers do not make important legal or
-        life decisions about you.
+        which questions are shown first. Your teacher can also ask an AI tool to
+        help draft a school report from your learning evidence and their notes.
+        A teacher must read and approve the words before they are used. Computers
+        do not award your grades or make important legal or life decisions about you.
       </Card>
 
       <Card title="Who can see it?">

@@ -95,10 +95,10 @@ export default async function AdminClasses() {
                     </div>
                     {!archived && (
                       <Link
-                        href={`/teacher/classes/${c.id}`}
-                        className="text-xs underline text-ink/60 hover:text-ink"
+                        href={`/teacher/classes/${c.id}/reports`}
+                        className="btn-ghost text-xs"
                       >
-                        Open class
+                        Pupil reports
                       </Link>
                     )}
                   </div>

@@ -12,7 +12,7 @@ export default function PrivacyPage() {
     <div className="max-w-2xl mx-auto py-12 space-y-8 text-sm leading-relaxed text-ink/80">
       <div>
         <h1 className="h-display text-3xl text-gold mb-2">Privacy notice</h1>
-        <p className="text-ink/50 text-xs">Last updated: 22 July 2026</p>
+        <p className="text-ink/50 text-xs">Last updated: 30 August 2026</p>
         <p className="mt-3">
           This notice explains how personal information is used by Latin Quest.
           A shorter, child-friendly version is available on our{" "}
@@ -56,6 +56,7 @@ export default function PrivacyPage() {
           <li>to deliver and mark learning activities;</li>
           <li>to calculate progress, mastery, badges and class rankings;</li>
           <li>to help authorised teachers understand learning needs;</li>
+          <li>to help authorised staff prepare pupil report drafts for human review;</li>
           <li>to provide authorised school reports and exports; and</li>
           <li>to prevent abuse, diagnose faults and protect the service.</li>
         </ul>
@@ -63,6 +64,13 @@ export default function PrivacyPage() {
           Exercise history is used to prioritise areas that may need more
           practice. This is limited educational profiling. It does not make legal
           or similarly significant decisions about pupils.
+        </p>
+        <p className="mt-2">
+          Authorised staff may ask an AI service to draft a subject report from
+          selected Latin Quest evidence and teacher observations. Every draft
+          must be checked, edited where necessary and approved by a teacher or
+          authorised administrator before use. The AI does not award grades or
+          make decisions about a pupil.
         </p>
       </Section>
 
@@ -98,8 +106,11 @@ export default function PrivacyPage() {
         <p>
           Supabase provides authentication and the primary database. The Latin
           Quest database is configured in the AWS London region. Vercel provides
-          application hosting and content delivery. AWS and other approved
-          subprocessors may support those services.
+          application hosting, content delivery and the AI Gateway used to route
+          report-drafting requests to the configured AI model provider. Only the
+          evidence needed for a draft is sent; pupil email addresses and technical
+          identifiers are excluded. AWS and other approved subprocessors may
+          support those services.
         </p>
         <p className="mt-2">
           Vercel, Supabase and their subprocessors may process limited information

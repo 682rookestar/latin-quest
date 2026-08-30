@@ -128,6 +128,18 @@ export default async function ClassDetail({ params }: { params: Promise<{ id: st
         </a>
       </header>
 
+      <section className="card p-5 flex flex-wrap items-center justify-between gap-4">
+        <div>
+          <h2 className="h-display text-xl">Pupil reporting</h2>
+          <p className="text-sm text-ink/60 mt-1">
+            Create reporting periods, review progression evidence and prepare teacher-approved comments.
+          </p>
+        </div>
+        <Link href={`/teacher/classes/${klass.id}/reports`} className="btn-primary">
+          Open reporting workspace
+        </Link>
+      </section>
+
       <section>
         <h2 className="text-xl font-semibold mb-1">Chapter access</h2>
         <p className="text-sm text-ink/60 mb-3">

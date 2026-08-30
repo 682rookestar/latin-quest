@@ -3,6 +3,7 @@ node_modules
 out
 .env*.local
 .vercel
+supabase/.temp/
 *.tsbuildinfo
 next-env.d.ts
 playwright-report/
