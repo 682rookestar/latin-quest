@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { useFormState } from "react-dom";
+import { useFormState, useFormStatus } from "react-dom";
 import { checkHallifordStyle } from "@/lib/reporting";
 import { generateStudentReport, type ReportActionResult } from "../../actions";
 
@@ -10,6 +10,43 @@ type ReportData = {
   status: string;
   generated_at?: string | null;
 };
+
+function GenerateButton({ regenerating }: { regenerating: boolean }) {
+  const { pending } = useFormStatus();
+
+  return (
+    <div className="space-y-3">
+      <button
+        className="btn-primary inline-flex items-center gap-2"
+        type="submit"
+        disabled={pending}
+        aria-describedby={pending ? "report-generation-status" : undefined}
+      >
+        {pending && (
+          <span
+            className="h-4 w-4 rounded-full border-2 border-current border-r-transparent animate-spin"
+            aria-hidden="true"
+          />
+        )}
+        {pending ? "Generating report…" : regenerating ? "Regenerate report" : "Generate report"}
+      </button>
+      {pending && (
+        <div
+          id="report-generation-status"
+          className="max-w-md rounded border border-sky/30 bg-sky/5 px-4 py-3"
+          role="status"
+          aria-live="polite"
+        >
+          <p className="text-sm font-medium text-sky">Generating report from Latin Quest evidence…</p>
+          <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-ink/10" aria-hidden="true">
+            <div className="h-full w-1/2 animate-pulse rounded-full bg-sky" />
+          </div>
+          <p className="mt-2 text-xs text-ink/50">This usually takes around 30 seconds. Keep this page open.</p>
+        </div>
+      )}
+    </div>
+  );
+}
 
 export default function ReportEditor({
   classId,
@@ -82,9 +119,7 @@ export default function ReportEditor({
         <input type="hidden" name="class_id" value={classId} />
         <input type="hidden" name="period_id" value={periodId} />
         <input type="hidden" name="student_id" value={studentId} />
-        <button className="btn-primary" type="submit">
-          {comment ? "Regenerate report" : "Generate report"}
-        </button>
+        <GenerateButton regenerating={Boolean(comment)} />
         {comment && (
           <button className="btn-gold" type="button" onClick={copyReport}>
             {copied ? "Copied" : "Copy report"}
