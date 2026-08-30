@@ -9,6 +9,7 @@ import {
   buildReportPrompt,
   checkHallifordStyle,
   containsExcludedReportContent,
+  lowercaseTaskReferences,
   type ReportInputs,
   type ReportingEvidence,
 } from "@/lib/reporting";
@@ -297,7 +298,10 @@ export async function generateStudentReport(
         inputs,
       }),
     });
-    const draft = text.trim();
+    const draft = lowercaseTaskReferences(
+      text.trim(),
+      evidence.skillBreakdown.map((skill) => skill.skill)
+    );
     if (!draft) return { ok: false, message: "The drafting service returned an empty response." };
     if (containsExcludedReportContent(draft)) {
       return { ok: false, message: "The generated report included an excluded metric or platform reference. Please generate it again." };

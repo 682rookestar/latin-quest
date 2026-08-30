@@ -45,10 +45,23 @@ export type StyleCheck = {
 
 const contractions = /\b(?:can't|cannot've|couldn't|didn't|doesn't|don't|hadn't|hasn't|haven't|he's|I'd|I'll|I'm|isn't|it's|she's|shouldn't|they're|wasn't|weren't|we're|won't|wouldn't|you'll|you're)\b/i;
 const wellWishingEnding = /(?:good luck|well done|keep it up|best wishes|for the future|next year)[.!\s]*$/i;
-const excludedReportContent = /(?:\d+(?:\.\d+)?\s*%|\b(?:badge|badges|website|platform)\b|\bLatin Quest\b)/i;
+const excludedReportContent = /(?:\d+(?:\.\d+)?\s*%|\b(?:badge|badges|website|platform|homework|hardworking)\b|\b(?:Latin Quest|Progress Grade|Challenge Grade)\b)/i;
 
 export function containsExcludedReportContent(comment: string) {
   return excludedReportContent.test(comment);
+}
+
+export function lowercaseTaskReferences(comment: string, taskNames: string[]) {
+  return [...new Set(taskNames)]
+    .filter(Boolean)
+    .sort((a, b) => b.length - a.length)
+    .reduce(
+      (text, taskName) => text.replace(
+        new RegExp(escapeRegExp(taskName), "gi"),
+        taskName.toLocaleLowerCase("en-GB")
+      ),
+      comment
+    );
 }
 
 export function checkHallifordStyle(comment: string, preferredName: string): StyleCheck[] {
@@ -108,10 +121,10 @@ export function buildReportPrompt({
   const rankedSkills = [...evidence.skillBreakdown]
     .filter((skill) => skill.attempts > 0)
     .sort((a, b) => b.accuracy - a.accuracy);
-  const strengthSkills = rankedSkills.slice(0, 3).map((skill) => skill.skill);
+  const strengthSkills = rankedSkills.slice(0, 3).map((skill) => skill.skill.toLocaleLowerCase("en-GB"));
   const developmentSkills = rankedSkills
     .slice(-3)
-    .map((skill) => skill.skill)
+    .map((skill) => skill.skill.toLocaleLowerCase("en-GB"))
     .filter((skill) => !strengthSkills.includes(skill));
   const qualitativeEvidence = {
     strongestChapter: evidence.strongestChapter,
@@ -132,9 +145,10 @@ Required style:
 - Do not include percentages, scores, grades, activity totals, question totals, mastery numbers or badges.
 - Do not refer to the amount or frequency of practice.
 - Do not name Latin Quest, a website, an app, a platform or any learning software.
+- Keep all task and exercise names lowercase when using them within a sentence.
+- Do not describe work ethic, homework, classroom engagement, Progress Grades or Challenge Grades because these are not present in the evidence.
 - Do not use contractions or exclamation marks.
 - Do not end with a well-wishing sentence or fragment.
-- Use 'homework', 'hardworking', 'Year 7', 'Progress Grade' and 'Challenge Grade' exactly if relevant.
 - Do not describe this as an AI draft or list raw fields.
 
 Class: ${className}

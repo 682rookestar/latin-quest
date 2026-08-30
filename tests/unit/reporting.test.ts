@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { buildReportPrompt, checkHallifordStyle, containsExcludedReportContent } from "@/lib/reporting";
+import {
+  buildReportPrompt,
+  checkHallifordStyle,
+  containsExcludedReportContent,
+  lowercaseTaskReferences,
+} from "@/lib/reporting";
 
 const validComment =
   "William has approached Latin lessons with steady engagement and has consolidated vocabulary effectively. His accurate work in Chapter 2 demonstrates secure recall and increasingly confident application of grammar. William should now focus on checking noun endings carefully and completing targeted revision so that this accuracy is sustained in unfamiliar translation tasks.";
@@ -26,7 +31,15 @@ describe("Halliford report validation", () => {
   it("detects percentages and badge references", () => {
     expect(containsExcludedReportContent("William achieved 82% and earned a badge.")).toBe(true);
     expect(containsExcludedReportContent("William practised through Latin Quest.")).toBe(true);
+    expect(containsExcludedReportContent("William is hardworking and completes homework.")).toBe(true);
+    expect(containsExcludedReportContent("His Progress Grade is secure.")).toBe(true);
     expect(containsExcludedReportContent(validComment)).toBe(false);
+  });
+
+  it("lowercases task references without changing the rest of the comment", () => {
+    const comment = "William excels in Vocabulary Match and Identify the Case.";
+    expect(lowercaseTaskReferences(comment, ["Vocabulary Match", "Identify the Case"]))
+      .toBe("William excels in vocabulary match and identify the case.");
   });
 });
 
@@ -47,7 +60,10 @@ describe("report drafting prompt", () => {
         strongestChapter: "Chapter 1: Foundations",
         developmentChapter: null,
         chapterBreakdown: [],
-        skillBreakdown: [],
+        skillBreakdown: [
+          { skill: "Vocabulary Match", attempts: 2, correct: 8, accuracy: 80, mastery: 4 },
+          { skill: "Identify the Case", attempts: 2, correct: 4, accuracy: 40, mastery: 2 },
+        ],
         badges: [],
       },
       inputs: {
@@ -69,5 +85,10 @@ describe("report drafting prompt", () => {
     expect(prompt).not.toContain('"averageScore":80');
     expect(prompt).not.toContain('"badges"');
     expect(prompt).not.toContain('"attemptCount"');
+    expect(prompt).toContain("vocabulary match");
+    expect(prompt).toContain("identify the case");
+    expect(prompt).not.toContain("Vocabulary Match");
+    expect(prompt).not.toContain("Identify the Case");
+    expect(prompt).not.toContain("Use 'homework'");
   });
 });
