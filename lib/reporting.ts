@@ -105,7 +105,7 @@ export function buildReportPrompt({
 }) {
   return `Write a Halliford School Latin subject report comment for ${preferredName}.
 
-This is a teacher-reviewed draft. Use only the supplied evidence and observations. Do not invent personality, behaviour, pastoral circumstances, awards, school values, assessment results or improvement claims. If a field is blank, omit it. Do not mention email addresses or technical identifiers.
+Use only the supplied Latin Quest evidence. Do not invent personality, classroom behaviour, pastoral circumstances, awards, school values, assessment results or improvement claims. Do not mention email addresses or technical identifiers.
 
 Required style:
 - 300 to 1,200 characters including spaces.
@@ -121,7 +121,7 @@ Required style:
 Class: ${className}
 Reporting period: ${evidence.period.name}, ${evidence.period.startsOn} to ${evidence.period.endsOn}
 Latin Quest evidence: ${JSON.stringify(evidence)}
-Teacher judgements and observations: ${JSON.stringify(inputs)}
+Optional staff context (normally blank): ${JSON.stringify(inputs)}
 
 Return only the finished report comment.`;
 }

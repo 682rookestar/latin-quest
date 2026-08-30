@@ -1,5 +1,4 @@
 import { redirect } from "next/navigation";
-import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import TransferOwnerForm from "./TransferOwnerForm";
 import PageHero from "@/components/PageHero";
@@ -93,14 +92,6 @@ export default async function AdminClasses() {
                         </span>
                       </div>
                     </div>
-                    {!archived && (
-                      <Link
-                        href={`/teacher/classes/${c.id}/reports`}
-                        className="btn-ghost text-xs"
-                      >
-                        Pupil reports
-                      </Link>
-                    )}
                   </div>
                   {!archived ? (
                     <>

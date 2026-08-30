@@ -67,10 +67,10 @@ export default function PrivacyPage() {
         </p>
         <p className="mt-2">
           Authorised staff may ask an AI service to draft a subject report from
-          selected Latin Quest evidence and teacher observations. Every draft
-          must be checked, edited where necessary and approved by a teacher or
-          authorised administrator before use. The AI does not award grades or
-          make decisions about a pupil.
+          selected Latin Quest evidence. No teacher notes are required. The
+          generated text is made available to authorised staff to review and copy
+          into the school&apos;s separate reporting system. The AI does not award
+          grades or make decisions about a pupil.
         </p>
       </Section>
 

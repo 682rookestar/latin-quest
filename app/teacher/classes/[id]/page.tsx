@@ -132,7 +132,7 @@ export default async function ClassDetail({ params }: { params: Promise<{ id: st
         <div>
           <h2 className="h-display text-xl">Pupil reporting</h2>
           <p className="text-sm text-ink/60 mt-1">
-            Create reporting periods, review progression evidence and prepare teacher-approved comments.
+            Generate report comments directly from each pupil&apos;s Latin Quest progress and activity.
           </p>
         </div>
         <Link href={`/teacher/classes/${klass.id}/reports`} className="btn-primary">

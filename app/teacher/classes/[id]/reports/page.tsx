@@ -64,8 +64,8 @@ export default async function ClassReportsPage({
         <p className="h-display text-sky text-xs tracking-[0.3em] mt-5 mb-1">Reporting</p>
         <h1 className="h-display text-3xl">Pupil reports</h1>
         <p className="text-sm text-ink/60 mt-2 max-w-3xl">
-          Build evidence-led Halliford report drafts, edit them using your professional judgement,
-          and approve the final wording. AI output is always a draft until you approve it.
+          Generate evidence-led Halliford report comments from each pupil&apos;s Latin Quest activity,
+          then copy the result into the school reporting system.
         </p>
       </div>
 
@@ -100,7 +100,7 @@ export default async function ClassReportsPage({
             const report = reportMap.get(`${period.id}:${membership.student_id}`) as any;
             return { membership, pupil, report };
           });
-          const approved = rows.filter((row) => row.report?.status === "approved").length;
+          const generated = rows.filter((row) => row.report?.status === "generated" || row.report?.status === "approved").length;
           return (
             <section key={period.id} className="card overflow-hidden">
               <header className="p-5 border-b border-ink/10 flex flex-wrap items-start justify-between gap-3">
@@ -114,7 +114,7 @@ export default async function ClassReportsPage({
                     {new Date(`${period.ends_on}T12:00:00Z`).toLocaleDateString("en-GB")}
                   </p>
                 </div>
-                <span className="chip-sky">{approved}/{rows.length} approved</span>
+                <span className="chip-sky">{generated}/{rows.length} generated</span>
               </header>
               {!rows.length ? (
                 <p className="p-5 text-sm text-ink/60">No pupils are currently enrolled in this class.</p>
@@ -132,10 +132,9 @@ export default async function ClassReportsPage({
                       </div>
                       <div className="flex items-center gap-3">
                         <span className={
-                          report?.status === "approved" ? "chip-olive" :
-                          report?.status === "generated" ? "chip-gold" : "chip-wine"
+                          report?.status === "approved" || report?.status === "generated" ? "chip-olive" : "chip-wine"
                         }>
-                          {report?.status ?? "not started"}
+                          {report?.status === "approved" || report?.status === "generated" ? "generated" : "not started"}
                         </span>
                         <span className="text-ink/40">&rsaquo;</span>
                       </div>

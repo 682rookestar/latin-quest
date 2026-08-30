@@ -282,9 +282,8 @@ export async function generateStudentReport(
 
   const inputs = readInputs(formData);
   const evidence = await collectEvidence(context, studentId);
-  const hasTeacherEvidence = Object.values(inputs).some((value) => typeof value === "string" && value.length > 0);
-  if (!evidence.attemptCount && !hasTeacherEvidence) {
-    return { ok: false, message: "Add a teacher observation or wait for Latin Quest activity before generating a draft." };
+  if (!evidence.attemptCount) {
+    return { ok: false, message: "There is no completed Latin Quest activity in this reporting period yet." };
   }
 
   try {
@@ -323,7 +322,7 @@ export async function generateStudentReport(
       ok: true,
       message: styleErrors.length
         ? "Draft generated. Review the highlighted style issue before approval."
-        : "Draft generated from the current evidence. Teacher review is required.",
+        : "Report generated from the pupil's Latin Quest evidence.",
     };
   } catch (error) {
     console.error("[reporting] AI draft failed", {
