@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { buildReportPrompt, checkHallifordStyle, containsExcludedReportMetrics } from "@/lib/reporting";
+import { buildReportPrompt, checkHallifordStyle, containsExcludedReportContent } from "@/lib/reporting";
 
 const validComment =
-  "William has approached Latin lessons with steady engagement and has used Latin Quest regularly to consolidate vocabulary. His accurate work in Chapter 2 demonstrates secure recall and increasingly confident application of grammar. William should now focus on checking noun endings carefully and completing short, frequent practice sessions so that this accuracy is sustained in unfamiliar translation tasks.";
+  "William has approached Latin lessons with steady engagement and has consolidated vocabulary effectively. His accurate work in Chapter 2 demonstrates secure recall and increasingly confident application of grammar. William should now focus on checking noun endings carefully and completing targeted revision so that this accuracy is sustained in unfamiliar translation tasks.";
 
 describe("Halliford report validation", () => {
   it("accepts a complete comment within the character limit", () => {
@@ -12,7 +12,7 @@ describe("Halliford report validation", () => {
   });
 
   it("blocks comments outside the required character range", () => {
-    const checks = checkHallifordStyle("William has worked well in Latin Quest.", "William");
+    const checks = checkHallifordStyle("William has worked well in Latin.", "William");
     expect(checks.some((check) => check.level === "error")).toBe(true);
   });
 
@@ -24,8 +24,9 @@ describe("Halliford report validation", () => {
   });
 
   it("detects percentages and badge references", () => {
-    expect(containsExcludedReportMetrics("William achieved 82% and earned a badge.")).toBe(true);
-    expect(containsExcludedReportMetrics(validComment)).toBe(false);
+    expect(containsExcludedReportContent("William achieved 82% and earned a badge.")).toBe(true);
+    expect(containsExcludedReportContent("William practised through Latin Quest.")).toBe(true);
+    expect(containsExcludedReportContent(validComment)).toBe(false);
   });
 });
 
@@ -64,6 +65,7 @@ describe("report drafting prompt", () => {
     expect(prompt).toContain("Do not invent");
     expect(prompt).toContain("Do not mention email addresses");
     expect(prompt).toContain("strengths and areas for development");
+    expect(prompt).toContain("Do not name Latin Quest");
     expect(prompt).not.toContain('"averageScore":80');
     expect(prompt).not.toContain('"badges"');
     expect(prompt).not.toContain('"attemptCount"');
