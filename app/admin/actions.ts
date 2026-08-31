@@ -16,6 +16,9 @@ export type TeacherAccountResult = {
 };
 
 export type TeacherMfaResetResult = TeacherAccountResult;
+export type TeacherPasswordResetResult = TeacherAccountResult & {
+  recoveryLink?: string;
+};
 
 async function requireAdmin() {
   const supabase = await createClient();
@@ -122,24 +125,10 @@ export async function inviteTeacher(
   };
 }
 
-// 12-char unambiguous-alphabet temp password.
-// Strong enough for a one-off reset; admin must DM it to the teacher
-// who is expected to change it immediately via /account.
-// Uses crypto.getRandomValues() for cryptographic randomness.
-function generateTempPassword(): string {
-  const alphabet =
-    "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789";
-  const bytes = new Uint8Array(12);
-  crypto.getRandomValues(bytes);
-  return Array.from(bytes)
-    .map((b) => alphabet[b % alphabet.length])
-    .join("");
-}
-
 export async function resetTeacherPassword(
-  _prev: { ok: boolean; message: string; tempPassword?: string } | null,
+  _prev: TeacherPasswordResetResult | null,
   formData: FormData
-): Promise<{ ok: boolean; message: string; tempPassword?: string }> {
+): Promise<TeacherPasswordResetResult> {
   const targetId = (formData.get("target_id") as string) || "";
   if (!targetId) {
     return { ok: false, message: "Missing target user id." };
@@ -164,7 +153,7 @@ export async function resetTeacherPassword(
   // button, to avoid admins accidentally locking each other out.
   const { data: targetProfile, error: profileError } = await admin
     .from("profiles")
-    .select("role, email")
+    .select("id, role, email, display_name, disabled_at")
     .eq("id", targetId)
     .single();
   if (profileError || !targetProfile) {
@@ -176,24 +165,71 @@ export async function resetTeacherPassword(
       message: "Admins cannot reset another admin's password from here.",
     };
   }
-
-  const tempPassword = generateTempPassword();
-  const { error: updateError } = await admin.auth.admin.updateUserById(
-    targetId,
-    { password: tempPassword }
-  );
-  if (updateError) {
+  if (targetProfile.role !== "teacher" || targetProfile.disabled_at) {
     return {
       ok: false,
-      message: `Could not reset password: ${updateError.message}`,
+      message: "Only an active teacher can receive a password recovery link.",
+    };
+  }
+
+  const auditEntry = {
+    target_user_id: targetProfile.id,
+    target_email: targetProfile.email,
+    target_display_name: targetProfile.display_name,
+    actor_id: user.id,
+    actor_email: user.email ?? null,
+    action: "reset_password",
+    reason: "Administrator-issued one-time recovery link",
+    outcome: "pending",
+  };
+  const { data: audit, error: auditError } = await admin
+    .from("teacher_account_audit")
+    .insert(auditEntry)
+    .select("id")
+    .single();
+  if (auditError || !audit) {
+    return {
+      ok: false,
+      message: "Could not create the required audit record. Nothing was changed.",
+    };
+  }
+
+  const origin = (process.env.NEXT_PUBLIC_SITE_URL ?? "").replace(/\/$/, "");
+  const { data: linkData, error: linkError } = await admin.auth.admin.generateLink({
+    type: "recovery",
+    email: targetProfile.email,
+    options: { redirectTo: origin ? `${origin}/account` : undefined },
+  });
+  const hashedToken =
+    (linkData as any)?.properties?.hashed_token ??
+    (linkData as any)?.hashed_token ??
+    null;
+
+  if (linkError || !origin || !hashedToken) {
+    await admin.from("teacher_account_audit").update({ outcome: "failed" }).eq("id", audit.id);
+    return {
+      ok: false,
+      message: "Could not generate a secure recovery link. No password was changed.",
+    };
+  }
+
+  const recoveryLink = `${origin}/auth/confirm?token_hash=${encodeURIComponent(hashedToken)}&type=recovery&next=/account`;
+  const { error: outcomeError } = await admin
+    .from("teacher_account_audit")
+    .update({ outcome: "success" })
+    .eq("id", audit.id);
+  if (outcomeError) {
+    return {
+      ok: false,
+      message: "The recovery link was generated, but its audit record could not be completed. Generate a new link after checking the audit service.",
     };
   }
 
   revalidatePath("/admin/teachers");
   return {
     ok: true,
-    message: `Temporary password for ${targetProfile.email}. They should change it from /account on first sign-in.`,
-    tempPassword,
+    message: `One-time password recovery link for ${targetProfile.email}. It can be used once and should be shared privately.`,
+    recoveryLink,
   };
 }
 

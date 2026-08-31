@@ -5,34 +5,87 @@ import { scoreAnswer } from "@/lib/scoring";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
+type ExerciseAccess = {
+  userId: string;
+  exercise: { id: string; chapter_id: string; is_boss: boolean };
+  admin: ReturnType<typeof createAdminClient>;
+};
+
+async function getStudentExerciseAccess(exerciseId: string): Promise<ExerciseAccess | null> {
+  if (!exerciseId) return null;
+
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return null;
+
+  const [{ data: profile }, { data: membership }, { data: exercise }] = await Promise.all([
+    supabase.from("profiles").select("role").eq("id", user.id).single(),
+    supabase.from("class_members").select("class_id").eq("student_id", user.id).limit(1).maybeSingle(),
+    supabase.from("exercises").select("id, chapter_id, is_boss").eq("id", exerciseId).single(),
+  ]);
+  if (profile?.role !== "student" || !membership || !exercise) return null;
+
+  const { data: lockedRows } = await supabase.rpc("locked_chapters_for_me");
+  if (((lockedRows as any[]) ?? []).some((row) => row.chapter_id === exercise.chapter_id)) {
+    return null;
+  }
+
+  return {
+    userId: user.id,
+    exercise: exercise as ExerciseAccess["exercise"],
+    admin: createAdminClient(),
+  };
+}
+
+function questionBelongsToExercise(
+  target: ExerciseAccess["exercise"],
+  question: any
+): boolean {
+  const source = Array.isArray(question.exercises)
+    ? question.exercises[0]
+    : question.exercises;
+  if (!source) return false;
+
+  return target.is_boss
+    ? source.chapter_id === target.chapter_id && source.is_boss === false
+    : question.exercise_id === target.id;
+}
+
 // ─── Per-question check (for immediate feedback) ────────────────────────────
 // Called after the student clicks "Check". Returns is_correct and the
 // canonical correct answer (revealed only AFTER the student has committed).
 export async function checkAnswer(
+  exerciseId: string,
   questionId: string,
   studentAnswer: string
 ): Promise<{ is_correct: boolean; correct_answer: string }> {
-  if (!questionId || studentAnswer.length > 5000) {
+  if (!exerciseId || !questionId || studentAnswer.length > 5000) {
     return { is_correct: false, correct_answer: "" };
   }
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { is_correct: false, correct_answer: "" };
+  const access = await getStudentExerciseAccess(exerciseId);
+  if (!access) return { is_correct: false, correct_answer: "" };
 
-  const { data } = await supabase
+  const { data: allowed, error: rateError } = await access.admin.rpc(
+    "consume_exercise_rate_limit",
+    { p_student: access.userId, p_action: "check" }
+  );
+  if (rateError || allowed !== true) {
+    return { is_correct: false, correct_answer: "" };
+  }
+
+  const { data } = await access.admin
     .from("exercise_questions")
-    .select("correct_answer, metadata, exercises(game_type)")
+    .select("exercise_id, correct_answer, metadata, exercises(game_type, chapter_id, is_boss)")
     .eq("id", questionId)
     .single();
 
-  if (!data) return { is_correct: false, correct_answer: "" };
+  if (!data || !questionBelongsToExercise(access.exercise, data)) {
+    return { is_correct: false, correct_answer: "" };
+  }
 
   const correctAnswer: string = (data as any).correct_answer ?? "";
   const parentExercise = (data as any).exercises as { game_type: string } | null;
-  const gameType: string =
-    ((data as any).metadata as any)?.__game_type ??
-    parentExercise?.game_type ??
-    "multiple_choice";
+  const gameType: string = parentExercise?.game_type ?? "multiple_choice";
 
   return {
     is_correct: scoreAnswer(studentAnswer, correctAnswer, gameType, (data as any).metadata),
@@ -55,9 +108,8 @@ export async function submitExercise(
   results: { question_id: string; is_correct: boolean; correct_answer: string }[];
   badge_earned: boolean;
 }> {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) throw new Error("Not authenticated");
+  const access = await getStudentExerciseAccess(exerciseId);
+  if (!access) throw new Error("Not authorised");
 
   const questionIds = answers.map((a) => a.question_id);
   if (
@@ -69,13 +121,26 @@ export async function submitExercise(
     throw new Error("Invalid answers");
   }
 
+  const { data: allowed, error: rateError } = await access.admin.rpc(
+    "consume_exercise_rate_limit",
+    { p_student: access.userId, p_action: "submit" }
+  );
+  if (rateError || allowed !== true) throw new Error("Too many submissions");
+
   // Fetch canonical correct answers for every submitted question
-  const { data: questions, error: qErr } = await supabase
+  const { data: questions, error: qErr } = await access.admin
     .from("exercise_questions")
-    .select("id, correct_answer, metadata, exercises(game_type)")
+    .select("id, exercise_id, correct_answer, metadata, exercises(game_type, chapter_id, is_boss)")
     .in("id", questionIds);
 
-  if (qErr || !questions) throw new Error("Could not load questions");
+  if (
+    qErr ||
+    !questions ||
+    questions.length !== questionIds.length ||
+    (questions as any[]).some((question) => !questionBelongsToExercise(access.exercise, question))
+  ) {
+    throw new Error("Could not load questions");
+  }
 
   const qMap = new Map((questions as any[]).map((q) => [q.id, q]));
 
@@ -85,8 +150,7 @@ export async function submitExercise(
     if (!q) return { question_id, is_correct: false, correct_answer: "" };
     const correctAnswer: string = q.correct_answer ?? "";
     const parentExercise = q.exercises as { game_type: string } | null;
-    const gameType: string =
-      q.metadata?.__game_type ?? parentExercise?.game_type ?? "multiple_choice";
+    const gameType: string = parentExercise?.game_type ?? "multiple_choice";
     return {
       question_id,
       is_correct: scoreAnswer(student_answer, correctAnswer, gameType, q.metadata),
@@ -104,10 +168,9 @@ export async function submitExercise(
   // This RPC is deliberately granted only to the service role. The browser
   // and authenticated Supabase clients cannot submit their own correctness
   // flags or progress values directly.
-  const admin = createAdminClient();
-  const { data: summary, error: rpcErr } = await admin
+  const { data: summary, error: rpcErr } = await access.admin
     .rpc("submit_exercise_attempt", {
-      p_student:     user.id,
+      p_student:     access.userId,
       p_exercise_id: exerciseId,
       p_answers:     rpcPayload,
     })

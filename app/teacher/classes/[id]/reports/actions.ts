@@ -333,14 +333,16 @@ export async function generateStudentReport(
         : "Report generated from the pupil's Latin Quest evidence.",
     };
   } catch (error) {
+    const requestId = crypto.randomUUID();
     console.error("[reporting] AI draft failed", {
+      requestId,
       model: REPORT_AI_MODEL,
-      classId,
-      periodId,
-      studentId,
       error: error instanceof Error ? error.message : String(error),
     });
-    return { ok: false, message: "The report generator is temporarily unavailable. Please try again shortly." };
+    return {
+      ok: false,
+      message: `The report generator is temporarily unavailable. Please try again shortly. Reference: ${requestId}`,
+    };
   }
 }
 

@@ -1,7 +1,9 @@
 import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import ExerciseRunner from "@/components/ExerciseRunner";
 import type { ExerciseQuestionPublic } from "@/lib/types";
+import { publicQuestionMetadata } from "@/lib/security";
 
 const BOSS_SAMPLE_SIZE = 15;
 
@@ -15,9 +17,15 @@ export default async function ExercisePage({
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  const { data: exercise } = await supabase
-    .from("exercises").select("*").eq("id", exId).single();
+  const [{ data: exercise }, { data: profile }, { data: membership }] = await Promise.all([
+    supabase.from("exercises").select("*").eq("id", exId).single(),
+    supabase.from("profiles").select("role").eq("id", user.id).single(),
+    supabase.from("class_members").select("class_id").eq("student_id", user.id).limit(1).maybeSingle(),
+  ]);
   if (!exercise) notFound();
+  if (exercise.chapter_id !== id) notFound();
+  if (profile?.role !== "student") redirect("/dashboard");
+  if (!membership) redirect("/learn/join");
 
   // Honour the per-class chapter lock here too -- a student could
   // otherwise bookmark a deep exercise URL and bypass the /learn UI.
@@ -27,6 +35,10 @@ export default async function ExercisePage({
   );
   if (isLocked) redirect("/learn?locked=1");
 
+  // Answer rows are deliberately inaccessible to browser/authenticated
+  // database clients. This server component may read them only after the
+  // pupil, enrolment, exercise, and chapter-lock checks above have passed.
+  const admin = createAdminClient();
   let questions: any[] = [];
 
   if (exercise.is_boss) {
@@ -44,9 +56,9 @@ export default async function ExercisePage({
     if (siblingIds.length === 0) {
       questions = [];
     } else {
-      const { data: pool } = await supabase
+      const { data: pool } = await admin
         .from("exercise_questions")
-        .select("id, exercise_id, prompt, correct_answer, options, metadata, position")
+        .select("id, exercise_id, prompt, options, metadata, position")
         .in("exercise_id", siblingIds);
 
       const byParent: Record<string, { game_type: string; skill_id: string | null }> = {};
@@ -76,9 +88,9 @@ export default async function ExercisePage({
       questions = playable.slice(0, BOSS_SAMPLE_SIZE).map((q, idx) => ({ ...q, position: idx + 1 }));
     }
   } else {
-    const { data: own } = await supabase
+    const { data: own } = await admin
       .from("exercise_questions")
-      .select("*")
+      .select("id, exercise_id, prompt, options, metadata, position")
       .eq("exercise_id", exId)
       .order("position");
 
@@ -119,12 +131,18 @@ export default async function ExercisePage({
     questions = scored.map((s, idx) => ({ ...s.q, position: idx + 1 }));
   }
 
-  // Strip correct_answer before sending to the client component.
-  // Scoring is now entirely server-side; the browser never sees answers.
-  const publicQuestions: ExerciseQuestionPublic[] = (questions as any[]).map(
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    ({ correct_answer: _removed, ...rest }) => rest
-  );
+  // Allow-list metadata before crossing the Server/Client Component boundary.
+  // Word-sort answer mappings remain server-only even though the words and
+  // available categories are needed to render the activity.
+  const publicQuestions: ExerciseQuestionPublic[] = (questions as any[]).map((question) => {
+    const gameType = question.metadata?.__game_type ?? exercise.game_type;
+    const metadata = {
+      ...(publicQuestionMetadata(question.metadata, gameType) ?? {}),
+      ...(question.metadata?.__game_type ? { __game_type: question.metadata.__game_type } : {}),
+      ...(question.metadata?.__skill_id ? { __skill_id: question.metadata.__skill_id } : {}),
+    };
+    return { ...question, metadata: Object.keys(metadata).length ? metadata : null };
+  });
 
   return (
     <ExerciseRunner

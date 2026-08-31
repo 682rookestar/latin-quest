@@ -1,4 +1,5 @@
 "use server";
+import { randomInt } from "node:crypto";
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
@@ -19,7 +20,7 @@ async function requireStaffMfa(supabase: Awaited<ReturnType<typeof createClient>
 function makeJoinCode() {
   const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
   let s = "";
-  for (let i = 0; i < 10; i++) s += chars[Math.floor(Math.random() * chars.length)];
+  for (let i = 0; i < 10; i++) s += chars[randomInt(chars.length)];
   return s;
 }
 

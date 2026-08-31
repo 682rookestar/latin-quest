@@ -1,13 +1,7 @@
 "use client";
 import { useFormState, useFormStatus } from "react-dom";
-import { resetTeacherPassword } from "../actions";
+import { resetTeacherPassword, type TeacherPasswordResetResult } from "../actions";
 import CopyLinkButton from "./CopyLinkButton";
-
-type Result = {
-  ok: boolean;
-  message: string;
-  tempPassword?: string;
-};
 
 function SubmitBtn() {
   const { pending } = useFormStatus();
@@ -21,7 +15,7 @@ function SubmitBtn() {
       onClick={(e) => {
         if (
           !window.confirm(
-            "Reset this teacher's password? Their current password (if any) will stop working immediately."
+            "Create a one-time password recovery link for this teacher? Share the link only with the intended teacher."
           )
         ) {
           e.preventDefault();
@@ -40,26 +34,23 @@ export default function ResetPasswordButton({
   targetId: string;
   email: string;
 }) {
-  const [state, formAction] = useFormState<Result | null, FormData>(
+  const [state, formAction] = useFormState<TeacherPasswordResetResult | null, FormData>(
     resetTeacherPassword,
     null
   );
 
-  // Once we have a temp password to reveal, replace the button with
-  // a small panel showing it + a copy button + a dismiss button.
-  if (state?.ok && state.tempPassword) {
+  if (state?.ok && state.recoveryLink) {
     return (
       <div className="rounded border border-olive/30 bg-olive/5 px-3 py-2 text-xs space-y-1 max-w-md">
         <div className="text-ink/70">
-          Temp password for <span className="font-mono">{email}</span> &mdash;
-          copy and DM it to them:
+          One-time recovery link for <span className="font-mono">{email}</span>:
         </div>
         <div className="flex items-center gap-3">
-          <code className="font-mono text-sm flex-1">{state.tempPassword}</code>
-          <CopyLinkButton link={state.tempPassword} label="Copy" />
+          <code className="font-mono text-xs flex-1 truncate">{state.recoveryLink}</code>
+          <CopyLinkButton link={state.recoveryLink} label="Copy link" />
         </div>
         <div className="text-ink/60">
-          Ask them to set their own password from <span className="font-mono">/account</span> after signing in.
+          Send it privately. The teacher should open it and set a new password on the Account page.
         </div>
       </div>
     );

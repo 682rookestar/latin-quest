@@ -20,6 +20,9 @@ test("sets baseline browser security headers", async ({ request }) => {
   expect(response.headers()["x-content-type-options"]).toBe("nosniff");
   expect(response.headers()["x-frame-options"]).toBe("DENY");
   expect(response.headers()["referrer-policy"]).toBe("strict-origin-when-cross-origin");
+  expect(response.headers()["content-security-policy"]).toContain("default-src 'self'");
+  expect(response.headers()["content-security-policy"]).toContain("object-src 'none'");
+  expect(response.headers()["x-powered-by"]).toBeUndefined();
 });
 
 test("privacy pages have no automatically detectable serious accessibility violations", async ({ page }) => {

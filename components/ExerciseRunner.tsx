@@ -1,25 +1,10 @@
 "use client";
 import { useMemo, useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { Exercise, ExerciseQuestionPublic, GameType } from "@/lib/types";
 import { checkAnswer, submitExercise } from "@/app/learn/actions";
-
-// Sanitize SVG markup to prevent XSS.
-// Removes <script> blocks, event-handler attributes (on*),
-// javascript: URLs, and <foreignObject> (arbitrary HTML embedding).
-function sanitizeSVG(svg: string): string {
-  return svg
-    .replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, "")
-    .replace(/<script\b[^>]*\/>/gi, "")
-    .replace(/<foreignObject\b[\s\S]*?<\/foreignObject>/gi, "")
-    .replace(/<foreignObject\b[^>]*\/>/gi, "")
-    .replace(/\s+on\w+\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]*)/gi, "")
-    .replace(
-      /(href|src|action|xlink:href)\s*=\s*(["'])\s*javascript:[^"']*/gi,
-      '$1=$2#'
-    );
-}
 
 type CollectedAnswer = { question_id: string; student_answer: string };
 type QuestionResult  = { question_id: string; is_correct: boolean; correct_answer: string };
@@ -62,7 +47,7 @@ export default function ExerciseRunner({
     setChecking(true);
     const serialised = serialise(answer, game);
     try {
-      const result = await checkAnswer(q.id, serialised);
+      const result = await checkAnswer(exercise.id, q.id, serialised);
       setCheckResult(result);
     } catch {
       // Network error: mark unknown, still allow progression
@@ -289,7 +274,7 @@ function QuestionView({
   }, [q.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (game === "word_type_sort") {
-    const md  = (q.metadata ?? {}) as { words: { word: string; type: string }[]; types: string[] };
+    const md  = (q.metadata ?? {}) as { words: { word: string }[]; types: string[] };
     const ans = (answer || {}) as Record<string, string>;
     return (
       <div className="mt-4">
@@ -325,11 +310,14 @@ function QuestionView({
       <div className="mt-4">
         <p className="text-lg">{q.prompt}</p>
         {md.svg && (
-          <div className="mt-3 flex justify-center">
-            <div
-              className="rounded-lg p-3 border border-ink/10"
-              dangerouslySetInnerHTML={{ __html: sanitizeSVG(md.svg) }}
-              style={{ background: "#E5E7EB", color: "#0B1220" }}
+          <div className="mt-3 flex justify-center rounded-lg p-3 border border-ink/10 bg-[#E5E7EB]">
+            <Image
+              src={`data:image/svg+xml;charset=utf-8,${encodeURIComponent(md.svg)}`}
+              alt={md.caption || "Latin preposition illustration"}
+              width={640}
+              height={360}
+              className="h-auto max-h-80 w-auto max-w-full"
+              unoptimized
             />
           </div>
         )}

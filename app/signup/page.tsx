@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import { createClient } from "@/lib/supabase/client";
+import { validateSignupCode } from "./actions";
 
 const STUDENT_EMAIL_DOMAIN = "hallifordschool.co.uk";
 
@@ -32,10 +33,7 @@ export default function SignupPage() {
     const supabase = createClient();
 
     const cleanCode = code.replace(/\s+/g, "").toUpperCase();
-    const { data: cls, error: codeError } = await supabase
-      .rpc("validate_join_code", { p_code: cleanCode })
-      .maybeSingle();
-    if (codeError || !cls) {
+    if (!(await validateSignupCode(cleanCode))) {
       setLoading(false);
       setError("That join code isn't valid or has expired. Ask your teacher for the latest one.");
       return;
