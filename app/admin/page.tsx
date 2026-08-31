@@ -52,7 +52,7 @@ export default async function AdminHome() {
           <p className="text-sm text-ink/60 mb-3">
             Teachers can only be added by invite. Send an invite by email and they&apos;ll get an invitation link to set their password.
           </p>
-          <Link href="/admin/teachers" className="btn-primary inline-block">Invite a teacher</Link>
+          <Link href="/admin/teachers" className="btn-primary inline-block">Manage teachers</Link>
         </div>
         <div className="card p-5">
           <h2 className="h-display text-lg mb-2">Manage classes</h2>
