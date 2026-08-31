@@ -6,6 +6,7 @@ import ResetPasswordButton from "./ResetPasswordButton";
 import { revokeInvite } from "../actions";
 import PageHero from "@/components/PageHero";
 import TeacherAccountActions from "./TeacherAccountActions";
+import ResetMfaButton from "./ResetMfaButton";
 
 function fmtDate(d: string | null) {
   if (!d) return "—";
@@ -38,7 +39,7 @@ export default async function TeachersAdmin() {
     supabase.from("classes").select("teacher_id"),
     supabase
       .from("teacher_account_audit")
-      .select("id, target_email, target_display_name, actor_email, action, occurred_at")
+      .select("id, target_email, target_display_name, actor_email, action, reason, outcome, occurred_at")
       .order("occurred_at", { ascending: false })
       .limit(50),
   ]);
@@ -156,12 +157,15 @@ export default async function TeachersAdmin() {
                     </div>
                   </div>
                   {canReset && (
-                    <TeacherAccountActions
-                      targetId={t.id}
-                      email={t.email}
-                      disabledAt={t.disabled_at}
-                      classCount={classCount}
-                    />
+                    <div className="space-y-3">
+                      {!t.disabled_at && <ResetMfaButton targetId={t.id} email={t.email} />}
+                      <TeacherAccountActions
+                        targetId={t.id}
+                        email={t.email}
+                        disabledAt={t.disabled_at}
+                        classCount={classCount}
+                      />
+                    </div>
                   )}
                 </li>
               );
@@ -186,15 +190,20 @@ export default async function TeachersAdmin() {
                   <th className="p-3">Action</th>
                   <th className="p-3">Teacher</th>
                   <th className="p-3">Administrator</th>
+                  <th className="p-3">Reason / result</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-ink/10">
                 {(accountAudit as any[]).map((entry) => (
                   <tr key={entry.id}>
                     <td className="p-3 whitespace-nowrap">{fmtDate(entry.occurred_at)}</td>
-                    <td className="p-3 capitalize">{entry.action}</td>
+                    <td className="p-3 capitalize">{entry.action.replaceAll("_", " ")}</td>
                     <td className="p-3">{entry.target_display_name ?? entry.target_email}</td>
                     <td className="p-3">{entry.actor_email ?? "Removed administrator"}</td>
+                    <td className="p-3">
+                      <div>{entry.reason ?? "—"}</div>
+                      <div className="text-xs capitalize text-ink/60">{entry.outcome ?? "success"}</div>
+                    </td>
                   </tr>
                 ))}
               </tbody>

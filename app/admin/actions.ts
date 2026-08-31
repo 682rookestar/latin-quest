@@ -15,6 +15,8 @@ export type TeacherAccountResult = {
   message: string;
 };
 
+export type TeacherMfaResetResult = TeacherAccountResult;
+
 async function requireAdmin() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -192,6 +194,115 @@ export async function resetTeacherPassword(
     ok: true,
     message: `Temporary password for ${targetProfile.email}. They should change it from /account on first sign-in.`,
     tempPassword,
+  };
+}
+
+const MFA_RESET_REASONS: Record<string, string> = {
+  lost_device: "Lost authenticator device",
+  replaced_device: "Replaced authenticator device",
+  authenticator_unavailable: "Authenticator unavailable",
+};
+
+export async function resetTeacherMfa(
+  _prev: TeacherMfaResetResult | null,
+  formData: FormData
+): Promise<TeacherMfaResetResult> {
+  const targetId = String(formData.get("target_id") ?? "");
+  const confirmation = String(formData.get("confirmation") ?? "").trim().toLowerCase();
+  const reasonCode = String(formData.get("reason") ?? "");
+  const reason = MFA_RESET_REASONS[reasonCode];
+
+  if (!targetId || !reason) {
+    return { ok: false, message: "Invalid authenticator reset request." };
+  }
+
+  const { user, profile } = await requireAdmin();
+  if (!user) return { ok: false, message: "You must be signed in." };
+  if (profile?.role !== "admin") return { ok: false, message: "Admin access with MFA is required." };
+  if (targetId === user.id) {
+    return { ok: false, message: "You cannot reset your own authenticator from this page." };
+  }
+
+  const admin = createAdminClient();
+  const { data: target, error: targetError } = await admin
+    .from("profiles")
+    .select("id, email, display_name, role, disabled_at")
+    .eq("id", targetId)
+    .single();
+
+  if (targetError || !target) return { ok: false, message: "Teacher account not found." };
+  if (target.role !== "teacher") {
+    return { ok: false, message: "Administrator authenticators cannot be reset here." };
+  }
+  if (target.disabled_at) {
+    return { ok: false, message: "Restore this teacher account before resetting its authenticator." };
+  }
+  if (confirmation !== target.email.trim().toLowerCase()) {
+    return { ok: false, message: "The confirmation email does not match." };
+  }
+
+  const auditEntry = {
+    target_user_id: target.id,
+    target_email: target.email,
+    target_display_name: target.display_name,
+    actor_id: user.id,
+    actor_email: user.email ?? null,
+    action: "reset_mfa",
+    reason,
+    outcome: "pending",
+  };
+  const { data: audit, error: auditError } = await admin
+    .from("teacher_account_audit")
+    .insert(auditEntry)
+    .select("id")
+    .single();
+  if (auditError || !audit) {
+    return { ok: false, message: "Could not create the required audit record. Nothing was changed." };
+  }
+
+  const { data: factorData, error: listError } = await admin.auth.admin.mfa.listFactors({
+    userId: targetId,
+  });
+  if (listError) {
+    await admin.from("teacher_account_audit").update({ outcome: "failed" }).eq("id", audit.id);
+    return { ok: false, message: `Could not check the teacher's authenticator: ${listError.message}` };
+  }
+
+  const factors = factorData?.factors ?? [];
+  if (factors.length === 0) {
+    await admin.from("teacher_account_audit").update({ outcome: "failed" }).eq("id", audit.id);
+    return { ok: false, message: "This teacher does not have a registered authenticator to reset." };
+  }
+
+  for (const factor of factors) {
+    const { error } = await admin.auth.admin.mfa.deleteFactor({
+      userId: targetId,
+      id: factor.id,
+    });
+    if (error) {
+      await admin.from("teacher_account_audit").update({ outcome: "failed" }).eq("id", audit.id);
+      return {
+        ok: false,
+        message: "The authenticator reset was only partly completed. Contact the system administrator before asking the teacher to sign in.",
+      };
+    }
+  }
+
+  const { error: outcomeError } = await admin
+    .from("teacher_account_audit")
+    .update({ outcome: "success" })
+    .eq("id", audit.id);
+  if (outcomeError) {
+    return {
+      ok: false,
+      message: "The authenticator was reset, but the audit outcome could not be updated. Contact the system administrator.",
+    };
+  }
+
+  revalidatePath("/admin/teachers");
+  return {
+    ok: true,
+    message: "Authenticator reset. The teacher has been signed out and must set up MFA again after signing in.",
   };
 }
 
