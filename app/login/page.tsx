@@ -25,13 +25,20 @@ export default function LoginPage() {
     e.preventDefault();
     setLoading(true); setError(null);
     const supabase = createClient();
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    setLoading(false);
-    if (error) { setError(error.message); return; }
-    const { data: assurance } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+    const { data: signIn, error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) { setLoading(false); setError(error.message); return; }
+
+    const [{ data: profile }, { data: assurance }] = await Promise.all([
+      supabase.from("profiles").select("role").eq("id", signIn.user.id).single(),
+      supabase.auth.mfa.getAuthenticatorAssuranceLevel(),
+    ]);
+    const isStaff = profile?.role === "teacher" || profile?.role === "admin";
+
     router.push(
-      assurance?.currentLevel === "aal1" && assurance.nextLevel === "aal2"
-        ? "/mfa/verify"
+      isStaff && assurance?.currentLevel !== "aal2"
+        ? assurance?.nextLevel === "aal2"
+          ? "/mfa/verify"
+          : "/account?mfa=required"
         : "/dashboard"
     );
     router.refresh();
