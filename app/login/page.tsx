@@ -60,9 +60,12 @@ export default function LoginPage() {
 
       {/* Form */}
       <div className="relative z-10 w-full max-w-sm ml-6 sm:ml-16 my-12">
-        <p className="h-display text-gold text-xs tracking-[0.3em] mb-3">Salve, discipule</p>
+        <p className="h-display text-gold text-xs tracking-[0.3em] mb-3">Salve</p>
         <h1 className="h-display text-3xl text-white mb-1">Sign in</h1>
-        <p className="text-sm text-white/50 mb-6">Welcome back to the academy.</p>
+        <p className="text-sm text-white/50 mb-2">Welcome back to the academy.</p>
+        <p className="text-sm text-white/70 mb-6">
+          Teachers and pupils use this same sign-in page. Staff are taken to their dashboard automatically.
+        </p>
         {urlError && (
           <p className="text-wine text-sm bg-wine/5 border border-wine/20 rounded p-3 mb-4">
             {urlError}
@@ -75,7 +78,10 @@ export default function LoginPage() {
           <button className="btn-primary w-full" disabled={loading}>{loading ? "Signing in…" : "Sign in"}</button>
         </form>
         <p className="text-sm text-white/50 mt-4">
-          No account? <Link className="underline text-gold" href="/signup">Sign up</Link>
+          Pupil without an account? <Link className="underline text-gold" href="/signup">Sign up with a class code</Link>
+        </p>
+        <p className="text-sm text-white/50 mt-2">
+          Teacher without access? Ask your administrator for an invitation or password reset.
         </p>
       </div>
     </div>
