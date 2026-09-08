@@ -19,6 +19,10 @@ export type TeacherMfaResetResult = TeacherAccountResult;
 export type TeacherPasswordResetResult = TeacherAccountResult & {
   recoveryLink?: string;
 };
+export type StudentActionResult = TeacherAccountResult;
+export type StudentPasswordResetResult = StudentActionResult & {
+  recoveryLink?: string;
+};
 
 async function requireAdmin() {
   const supabase = await createClient();
@@ -523,6 +527,89 @@ export async function transferClassOwnership(
   revalidatePath("/admin/classes");
   revalidatePath("/teacher");
   return { ok: true, message: "Ownership transferred." };
+}
+
+export async function moveStudent(
+  _prev: StudentActionResult | null,
+  formData: FormData
+): Promise<StudentActionResult> {
+  const studentId = String(formData.get("student_id") ?? "");
+  const newClassId = String(formData.get("new_class_id") ?? "");
+  if (!studentId || !newClassId) return { ok: false, message: "Select a pupil and class." };
+
+  const { supabase, user, profile } = await requireAdmin();
+  if (!user) return { ok: false, message: "You must be signed in." };
+  if (profile?.role !== "admin") return { ok: false, message: "Admin access with MFA is required." };
+
+  const { error } = await supabase.rpc("admin_move_student", {
+    p_student: studentId,
+    p_new_class: newClassId,
+  });
+  if (error) {
+    const message = error.message?.toLowerCase() ?? "";
+    if (message.includes("student_not_found")) return { ok: false, message: "That pupil is no longer available." };
+    if (message.includes("class_not_found")) return { ok: false, message: "That class is archived or no longer available." };
+    return { ok: false, message: "Could not move this pupil." };
+  }
+
+  revalidatePath("/admin/students");
+  revalidatePath("/admin/classes");
+  revalidatePath("/teacher");
+  return { ok: true, message: "Pupil moved. Learning history was preserved." };
+}
+
+export async function resetStudentPassword(
+  _prev: StudentPasswordResetResult | null,
+  formData: FormData
+): Promise<StudentPasswordResetResult> {
+  const studentId = String(formData.get("student_id") ?? "");
+  if (!studentId) return { ok: false, message: "Missing pupil account." };
+
+  const { user, profile } = await requireAdmin();
+  if (!user) return { ok: false, message: "You must be signed in." };
+  if (profile?.role !== "admin") return { ok: false, message: "Admin access with MFA is required." };
+
+  const admin = createAdminClient();
+  const { data: student, error: studentError } = await admin
+    .from("profiles")
+    .select("id, email, display_name, role, disabled_at")
+    .eq("id", studentId)
+    .single();
+  if (studentError || !student || student.role !== "student" || student.disabled_at) {
+    return { ok: false, message: "Only an active pupil can receive a recovery link." };
+  }
+
+  const auditEntry = {
+    target_user_id: student.id,
+    target_email: student.email,
+    target_display_name: student.display_name,
+    actor_id: user.id,
+    actor_email: user.email ?? null,
+    action: "reset_password",
+    reason: "Administrator-issued one-time recovery link",
+    outcome: "pending",
+  };
+  const { data: audit, error: auditError } = await admin.from("student_account_audit").insert(auditEntry).select("id").single();
+  if (auditError || !audit) return { ok: false, message: "Could not create the required audit record. Nothing was changed." };
+
+  const origin = (process.env.NEXT_PUBLIC_SITE_URL ?? "").replace(/\/$/, "");
+  const { data: linkData, error: linkError } = await admin.auth.admin.generateLink({
+    type: "recovery",
+    email: student.email,
+    options: { redirectTo: origin ? `${origin}/account` : undefined },
+  });
+  const hashedToken = (linkData as any)?.properties?.hashed_token ?? (linkData as any)?.hashed_token ?? null;
+  if (linkError || !origin || !hashedToken) {
+    await admin.from("student_account_audit").update({ outcome: "failed" }).eq("id", audit.id);
+    return { ok: false, message: "Could not generate a secure recovery link. No password was changed." };
+  }
+
+  const recoveryLink = `${origin}/auth/confirm?token_hash=${encodeURIComponent(hashedToken)}&type=recovery&next=/account`;
+  const { error: outcomeError } = await admin.from("student_account_audit").update({ outcome: "success" }).eq("id", audit.id);
+  if (outcomeError) return { ok: false, message: "The link was generated, but its audit record could not be completed. Please generate another link." };
+
+  revalidatePath("/admin/students");
+  return { ok: true, message: `One-time recovery link created for ${student.email}.`, recoveryLink };
 }
 
 export async function revokeInvite(formData: FormData): Promise<void> {

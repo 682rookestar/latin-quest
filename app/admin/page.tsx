@@ -46,13 +46,20 @@ export default async function AdminHome() {
         </div>
       </section>
 
-      <section className="grid md:grid-cols-2 gap-4">
+      <section className="grid md:grid-cols-3 gap-4">
         <div className="card p-5">
           <h2 className="h-display text-lg mb-2">Manage teachers</h2>
           <p className="text-sm text-ink/60 mb-3">
             Teachers can only be added by invite. Send an invite by email and they&apos;ll get an invitation link to set their password.
           </p>
           <Link href="/admin/teachers" className="btn-primary inline-block">Manage teachers</Link>
+        </div>
+        <div className="card p-5">
+          <h2 className="h-display text-lg mb-2">Manage students</h2>
+          <p className="text-sm text-ink/60 mb-3">
+            Move pupils between classes and create secure one-time password recovery links.
+          </p>
+          <Link href="/admin/students" className="btn-primary inline-block">Manage students</Link>
         </div>
         <div className="card p-5">
           <h2 className="h-display text-lg mb-2">Manage classes</h2>
