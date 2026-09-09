@@ -16,9 +16,31 @@ describe("answer scoring", () => {
     expect(translationMatches("", "The girl walks home")).toBe(false);
   });
 
-  it("accepts close keyword variants but rejects repeated filler", () => {
-    expect(translationMatches("The girls walked quickly home", "The girl walks quickly home")).toBe(true);
+  it("preserves tense and number and rejects repeated filler", () => {
+    expect(translationMatches("The girls walked quickly home", "The girl walks quickly home")).toBe(false);
     expect(translationMatches("the the the the", "The girl walks quickly home")).toBe(false);
+  });
+
+  it("rejects reversed actors, missing negation and missing verbs", () => {
+    expect(translationMatches("Remus killed Romulus.", "Romulus killed Remus.")).toBe(false);
+    expect(translationMatches("Hannibal did defeat the Romans.", "Hannibal did not defeat the Romans.")).toBe(false);
+    expect(translationMatches("Jupiter king", "Jupiter was king.")).toBe(false);
+    expect(translationMatches("Jupiter was not king", "Jupiter was king.")).toBe(false);
+  });
+
+  it("accepts curated synonyms, articles and negative contractions", () => {
+    expect(translationMatches("The girl answered.", "The girl replied.")).toBe(true);
+    expect(translationMatches("A girl responded!", "The girl replied.")).toBe(true);
+    expect(translationMatches("Hannibal didn’t defeat the Romans", "Hannibal did not defeat the Romans.")).toBe(true);
+  });
+
+  it("supports private per-question alternatives, ignoring malformed alternatives", () => {
+    expect(scoreAnswer("The girl responded", "The girl gave a reply", "translation", { accepted_answers: [null, "The girl responded"] })).toBe(true);
+    expect(scoreAnswer("The girl responded", "The boy gave a reply", "translation", { accepted_answers: "The girl responded" })).toBe(false);
+  });
+
+  it.each(["null", "[]", "42", "true", '"noun"', "invalid json"])("rejects malformed sorting payload %s without throwing", payload => {
+    expect(scoreAnswer(payload, "", "word_type_sort", { words: [{ word: "rex", type: "noun" }] })).toBe(false);
   });
 
   it("requires every word-sort item and rejects missing metadata", () => {

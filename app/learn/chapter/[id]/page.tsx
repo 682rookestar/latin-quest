@@ -10,7 +10,7 @@ const GAME_LABELS: Record<string, string> = {
   case_id: "Identify the case",
   adjective_agree: "Adjective agreement",
   adverb_use: "Adverb usage",
-  preposition_picture: "Prepositions & pictures",
+  preposition_picture: "Preposition practice",
   translation: "Translation",
   multiple_choice: "Quick quiz",
   person_id: "Identify the person",

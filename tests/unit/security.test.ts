@@ -45,4 +45,8 @@ describe("public exercise metadata", () => {
   it("keeps unknown metadata private by default", () => {
     expect(publicQuestionMetadata({ answer_hint: "secret" }, "new_game")).toBeNull();
   });
+
+  it("does not expose accepted translations to the browser", () => {
+    expect(publicQuestionMetadata({ accepted_answers: ["The girl answered."] }, "translation")).toBeNull();
+  });
 });

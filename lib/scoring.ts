@@ -1,3 +1,5 @@
+import { translationAlternatives } from "./translation-answers";
+
 export function normaliseAnswer(value: string): string {
   return value
     .normalize("NFD")
@@ -9,35 +11,28 @@ export function normaliseAnswer(value: string): string {
     .trim();
 }
 
-function stemWord(word: string): string {
-  return word
-    .replace(/(?:ing|tion|ness|ment)$/, "")
-    .replace(/(?:ed|er|est|ly)$/, "")
-    .replace(/es$/, "")
-    .replace(/s$/, "")
-    .replace(/e$/, "");
-}
-
 export function answersMatch(student: string, correct: string): boolean {
   return normaliseAnswer(student) === normaliseAnswer(correct);
 }
 
-export function translationMatches(student: string, correct: string): boolean {
-  const submitted = normaliseAnswer(student);
-  const expected = normaliseAnswer(correct);
+function normaliseTranslation(value: string): string {
+  // Latin has no articles. Ignore English article choices, but preserve word
+  // order, pronouns, negation, tense and number: these change the meaning.
+  const expanded = value.replace(/[’‘]/g, "'")
+    .replace(/\bdidn't\b/gi, "did not").replace(/\bdoesn't\b/gi, "does not")
+    .replace(/\bdon't\b/gi, "do not").replace(/\bwasn't\b/gi, "was not")
+    .replace(/\bweren't\b/gi, "were not").replace(/\bisn't\b/gi, "is not")
+    .replace(/\baren't\b/gi, "are not").replace(/\bhasn't\b/gi, "has not")
+    .replace(/\bhaven't\b/gi, "have not").replace(/\bhadn't\b/gi, "had not")
+    .replace(/\bI'm\b/gi, "I am");
+  return normaliseAnswer(expanded).split(" ").filter(word => !["a", "an", "the"].includes(word)).join(" ");
+}
+
+export function translationMatches(student: string, correct: string, alternatives: string[] = []): boolean {
+  const submitted = normaliseTranslation(student);
   if (!submitted) return false;
-  if (submitted === expected) return true;
-
-  const studentWords = submitted.split(" ");
-  const expectedKeywords = expected.split(" ").filter((word) => word.length > 3);
-  if (studentWords.length < Math.ceil(expectedKeywords.length * 0.5)) return false;
-
-  const uniqueRatio = new Set(studentWords).size / studentWords.length;
-  if (studentWords.length > 3 && uniqueRatio < 0.6) return false;
-
-  const studentStems = new Set(studentWords.map(stemWord));
-  const hits = expectedKeywords.filter((word) => studentStems.has(stemWord(word))).length;
-  return expectedKeywords.length > 0 && hits / expectedKeywords.length >= 0.8;
+  const curated = translationAlternatives[correct] ?? [];
+  return [correct, ...curated, ...alternatives].some(candidate => normaliseTranslation(candidate) === submitted);
 }
 
 export function scoreAnswer(
@@ -51,7 +46,9 @@ export function scoreAnswer(
   if (gameType === "word_type_sort") {
     const details = metadata as { words?: { word: string; type: string }[] } | null;
     const items = details?.words ?? [];
-    if (!items.length) return false;
+    if (!Array.isArray(items) || !items.length || items.some(item =>
+      !item || typeof item.word !== "string" || typeof item.type !== "string"
+    )) return false;
 
     let submitted: Record<string, string> = {};
     try {
@@ -59,11 +56,14 @@ export function scoreAnswer(
     } catch {
       return false;
     }
-    return items.every((item) => submitted[item.word] === item.type);
+    if (!submitted || typeof submitted !== "object" || Array.isArray(submitted)) return false;
+    return items.every((item) => Object.hasOwn(submitted, item.word) && submitted[item.word] === item.type);
   }
 
   if (gameType === "translation") {
-    return translationMatches(studentAnswer, correctAnswer);
+    const candidates = (metadata as { accepted_answers?: unknown } | null)?.accepted_answers;
+    const alternatives = Array.isArray(candidates) ? candidates.filter((value): value is string => typeof value === "string") : [];
+    return translationMatches(studentAnswer, correctAnswer, alternatives);
   }
   return answersMatch(studentAnswer, correctAnswer);
 }
