@@ -58,29 +58,30 @@ export async function checkAnswer(
   exerciseId: string,
   questionId: string,
   studentAnswer: string
-): Promise<{ is_correct: boolean; correct_answer: string }> {
+): Promise<{ is_correct: boolean; correct_answer: string } | { error: string }> {
   if (!exerciseId || !questionId || studentAnswer.length > 5000) {
-    return { is_correct: false, correct_answer: "" };
+    return { error: "This answer could not be checked. Please try again." };
   }
   const access = await getStudentExerciseAccess(exerciseId);
-  if (!access) return { is_correct: false, correct_answer: "" };
+  if (!access) return { error: "Your session or class access could not be confirmed. Try again, or sign in in another tab." };
 
   const { data: allowed, error: rateError } = await access.admin.rpc(
     "consume_exercise_rate_limit",
     { p_student: access.userId, p_action: "check" }
   );
   if (rateError || allowed !== true) {
-    return { is_correct: false, correct_answer: "" };
+    return { error: "Answer checking is temporarily unavailable. Wait a minute and try again." };
   }
 
-  const { data } = await access.admin
+  const { data, error: questionError } = await access.admin
     .from("exercise_questions")
     .select("exercise_id, correct_answer, metadata, exercises(game_type, chapter_id, is_boss)")
     .eq("id", questionId)
     .single();
 
-  if (!data || !questionBelongsToExercise(access.exercise, data)) {
-    return { is_correct: false, correct_answer: "" };
+  if (questionError || !data || !questionBelongsToExercise(access.exercise, data)) {
+    console.error("exercise_check_question_failed", { exerciseId, questionId, code: questionError?.code });
+    return { error: "The question could not be loaded for marking. Please try again." };
   }
 
   const correctAnswer: string = (data as any).correct_answer ?? "";

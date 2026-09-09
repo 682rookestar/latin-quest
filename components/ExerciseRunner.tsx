@@ -29,6 +29,7 @@ export default function ExerciseRunner({
   const [i, setI]                 = useState(0);
   const [answer, setAnswer]       = useState<any>(null);
   const [checking, setChecking]   = useState(false);
+  const [checkError, setCheckError] = useState<string | null>(null);
   const [checkResult, setCheckResult] = useState<{ is_correct: boolean; correct_answer: string } | null>(null);
   const [collected, setCollected] = useState<CollectedAnswer[]>([]);
   const [finalResult, setFinalResult] = useState<FinalResult | null>(null);
@@ -44,34 +45,38 @@ export default function ExerciseRunner({
   }
 
   async function handleCheck() {
+    if (checking) return;
     setChecking(true);
+    setCheckError(null);
     const serialised = serialise(answer, game);
     try {
       const result = await checkAnswer(exercise.id, q.id, serialised);
-      setCheckResult(result);
+      if ("error" in result) {
+        setCheckError(result.error);
+      } else {
+        setCheckResult(result);
+      }
     } catch {
-      // Network error: mark unknown, still allow progression
-      setCheckResult({ is_correct: false, correct_answer: "—" });
+      setCheckError("We couldn’t check your answer. It has not been marked incorrect. Please try Check again.");
     } finally {
       setChecking(false);
     }
   }
 
   async function handleNext() {
-    if (!checkResult) return;
+    if (!checkResult || submitting) return;
 
     const serialised  = serialise(answer, game);
     const newCollected = [...collected, { question_id: q.id, student_answer: serialised }];
     setCollected(newCollected);
-    setCheckResult(null);
-
-    const nextQ: any      = questions[i + 1];
-    const nextGame: string = nextQ?.metadata?.__game_type ?? exercise.game_type;
-    setAnswer(nextGame === "word_type_sort" ? {} : null);
-
     if (i + 1 >= questions.length) {
       await handleFinish(newCollected);
     } else {
+      setCheckResult(null);
+      setCheckError(null);
+      const nextQ: any = questions[i + 1];
+      const nextGame: string = nextQ?.metadata?.__game_type ?? exercise.game_type;
+      setAnswer(nextGame === "word_type_sort" ? {} : null);
       setI(i + 1);
     }
   }
@@ -82,10 +87,9 @@ export default function ExerciseRunner({
     try {
       const result = await submitExercise(exercise.id, finalAnswers);
       setFinalResult(result);
-      router.refresh();
     } catch {
       setSubmitError(
-        "Could not save your results — check your connection and try again. Your progress has not been recorded."
+        "We couldn’t confirm that your results were saved. Your answers are still here. Check your connection and retry saving."
       );
       setSubmitting(false);
     }
@@ -105,8 +109,19 @@ export default function ExerciseRunner({
   if (submitting && !finalResult) {
     return (
       <div className="max-w-2xl mx-auto card p-8 text-center">
-        <p className="text-ink/60 text-sm">Saving your results…</p>
+        <p role="status" className="text-ink/60 text-sm">Saving your results… Please keep this page open.</p>
         {submitError && <p className="text-wine text-sm mt-3">{submitError}</p>}
+      </div>
+    );
+  }
+
+  if (submitError && !finalResult) {
+    return (
+      <div className="max-w-2xl mx-auto card p-8 text-center space-y-4">
+        <h2 className="text-xl font-semibold">Your answers are ready to save</h2>
+        <p role="alert" className="text-wine text-sm">{submitError}</p>
+        <button className="btn-primary" onClick={() => handleFinish(collected)}>Retry saving results</button>
+        <p className="text-ink/60 text-xs">Keep this page open. If your session expired, sign in in another tab and then retry here.</p>
       </div>
     );
   }
@@ -144,7 +159,9 @@ export default function ExerciseRunner({
               setI(0);
               setCollected([]);
               setFinalResult(null);
+              setSubmitting(false);
               setCheckResult(null);
+              setCheckError(null);
               setSubmitError(null);
               const firstQ: any    = questions[0];
               const firstGame: string = firstQ?.metadata?.__game_type ?? exercise.game_type;
@@ -238,6 +255,7 @@ export default function ExerciseRunner({
             </>
           )}
         </div>
+        {checkError && <p role="alert" className="mt-3 text-sm text-wine">{checkError}</p>}
       </div>
     </div>
   );
