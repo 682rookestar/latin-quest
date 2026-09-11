@@ -40,6 +40,32 @@ beforeEach(async () => {
 });
 afterEach(() => { act(() => renderer.unmount()); });
 describe("20-question exercise flow", () => {
+  it("keeps the issued questions stable when server actions refresh shuffled props", async () => {
+    for (let i = 0; i < 20; i++) {
+      await click("correct");
+      await click("Check");
+      const shuffled = [...questions.slice(i + 1), ...questions.slice(0, i + 1)];
+      await act(async () => { renderer.update(React.createElement(ExerciseRunner, { exercise, questions: shuffled, backHref: "/learn" })); });
+      await click(i === 19 ? "Finish" : "Next");
+    }
+    expect(api.check.mock.calls.map(call => call[1])).toEqual(questions.map(q => q.id));
+    expect(api.submit).toHaveBeenCalledWith("exercise", questions.map(q => ({ question_id: q.id, student_answer: "correct" })));
+  });
+  it("keeps a boss sample stable during checking and adopts fresh questions only on Try again", async () => {
+    const boss = { ...exercise, is_boss: true };
+    await act(async () => { renderer.update(React.createElement(ExerciseRunner, { exercise: boss, questions, backHref: "/learn" })); });
+    const replacement = questions.map(q => ({ ...q, id: `new-${q.id}`, prompt: `New ${q.prompt}` }));
+    api.check.mockImplementationOnce(async () => {
+      renderer.update(React.createElement(ExerciseRunner, { exercise: boss, questions: replacement, backHref: "/learn" }));
+      return { is_correct: true, correct_answer: "correct" };
+    });
+    await complete();
+    expect(api.submit).toHaveBeenCalledWith("exercise", questions.map(q => ({ question_id: q.id, student_answer: "correct" })));
+    await click("Try again");
+    await click("correct");
+    await click("Check");
+    expect(api.check).toHaveBeenLastCalledWith("exercise", "new-q-0", "correct");
+  });
   it("finishes with all 20 unique answers and allows a second complete attempt", async () => {
     await complete();
     expect(api.submit).toHaveBeenCalledWith("exercise", questions.map(q => ({ question_id: q.id, student_answer: "correct" })));

@@ -2,7 +2,6 @@
 import { useMemo, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import type { Exercise, ExerciseQuestionPublic, GameType } from "@/lib/types";
 import { checkAnswer, submitExercise } from "@/app/learn/actions";
 
@@ -18,14 +17,17 @@ type FinalResult = {
 
 export default function ExerciseRunner({
   exercise,
-  questions,
+  questions: incomingQuestions,
   backHref,
 }: {
   exercise:  Exercise;
   questions: ExerciseQuestionPublic[];
   backHref:  string;
 }) {
-  const router = useRouter();
+  // Server Actions may refresh this page and generate a new shuffled list.
+  // Pin the complete question data for this attempt, including boss samples,
+  // so the current index, checked answer and submitted ID always agree.
+  const [questions, setQuestions] = useState(() => incomingQuestions);
   const [i, setI]                 = useState(0);
   const [answer, setAnswer]       = useState<any>(null);
   const [checking, setChecking]   = useState(false);
@@ -156,6 +158,7 @@ export default function ExerciseRunner({
           <button
             className="btn-primary"
             onClick={() => {
+              setQuestions(incomingQuestions);
               setI(0);
               setCollected([]);
               setFinalResult(null);
@@ -163,10 +166,9 @@ export default function ExerciseRunner({
               setCheckResult(null);
               setCheckError(null);
               setSubmitError(null);
-              const firstQ: any    = questions[0];
+              const firstQ: any    = incomingQuestions[0];
               const firstGame: string = firstQ?.metadata?.__game_type ?? exercise.game_type;
               setAnswer(firstGame === "word_type_sort" ? {} : null);
-              if (exercise.is_boss) router.refresh();
             }}
           >
             Try again

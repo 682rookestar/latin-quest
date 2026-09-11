@@ -146,6 +146,7 @@ export default async function ExercisePage({
 
   return (
     <ExerciseRunner
+      key={exercise.id}
       exercise={exercise}
       questions={publicQuestions}
       backHref={`/learn/chapter/${id}`}
