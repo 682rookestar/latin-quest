@@ -1,5 +1,6 @@
 "use client";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { DRAFT_KEY, parseExerciseDraft } from "@/lib/exercise-draft";
 import Image from "next/image";
 import Link from "next/link";
 import type { Exercise, ExerciseQuestionPublic, GameType } from "@/lib/types";
@@ -19,15 +20,21 @@ export default function ExerciseRunner({
   exercise,
   questions: incomingQuestions,
   backHref,
+  studentId,
+  attemptTicket,
 }: {
   exercise:  Exercise;
   questions: ExerciseQuestionPublic[];
   backHref:  string;
+  studentId?: string;
+  attemptTicket?: string;
 }) {
   // Server Actions may refresh this page and generate a new shuffled list.
   // Pin the complete question data for this attempt, including boss samples,
   // so the current index, checked answer and submitted ID always agree.
   const [questions, setQuestions] = useState(() => incomingQuestions);
+  const [ticket, setTicket] = useState(attemptTicket);
+  const [requiresTicket] = useState(Boolean(attemptTicket));
   const [i, setI]                 = useState(0);
   const [answer, setAnswer]       = useState<any>(null);
   const [checking, setChecking]   = useState(false);
@@ -37,6 +44,37 @@ export default function ExerciseRunner({
   const [finalResult, setFinalResult] = useState<FinalResult | null>(null);
   const [submitting, setSubmitting]   = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [draftReady, setDraftReady] = useState(!studentId);
+  const [draftNotice, setDraftNotice] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!studentId) return;
+    try {
+      const draft = parseExerciseDraft(sessionStorage.getItem(DRAFT_KEY), studentId, exercise.id);
+      sessionStorage.removeItem(DRAFT_KEY);
+      if (draft && (!requiresTicket || draft.ticket)) {
+        setTicket(draft.ticket);
+        setQuestions(draft.questions);
+        setI(draft.index);
+        setAnswer(draft.answer);
+        setCollected(draft.collected);
+        setDraftNotice("Your unfinished exercise has been restored. Check your current answer again to continue.");
+        if (draft.collected.length === draft.questions.length) {
+          setSubmitError("Your answers were restored. Retry saving to retrieve or finish saving this attempt; it will not award a duplicate score.");
+        }
+      }
+    } catch { setDraftNotice("Progress recovery is unavailable in this browser. Keep this page open until your results are saved."); }
+    setDraftReady(true);
+  }, [studentId, exercise.id, requiresTicket]);
+
+  useEffect(() => {
+    if (!studentId || !draftReady) return;
+    try {
+      if (finalResult || (!collected.length && answer === null)) sessionStorage.removeItem(DRAFT_KEY);
+      else sessionStorage.setItem(DRAFT_KEY, JSON.stringify({ version: 1, owner: studentId,
+        exercise: exercise.id, updatedAt: Date.now(), questions, index: i, answer, collected, ticket }));
+    } catch { setDraftNotice("Progress recovery is unavailable in this browser. Keep this page open until your results are saved."); }
+  }, [studentId, exercise.id, draftReady, questions, i, answer, collected, finalResult, ticket]);
 
   const q    = questions[i];
   // Boss rounds tag the originating game type in metadata.__game_type
@@ -87,7 +125,7 @@ export default function ExerciseRunner({
     setSubmitting(true);
     setSubmitError(null);
     try {
-      const result = await submitExercise(exercise.id, finalAnswers);
+      const result = ticket ? await submitExercise(exercise.id, finalAnswers, ticket) : await submitExercise(exercise.id, finalAnswers);
       setFinalResult(result);
     } catch {
       setSubmitError(
@@ -98,6 +136,7 @@ export default function ExerciseRunner({
   }
 
   // ── Empty exercise ────────────────────────────────────────────────────────
+  if (!draftReady) return <p role="status">Restoring your exercise…</p>;
   if (!questions.length) {
     return (
       <div className="max-w-2xl mx-auto card p-8 text-center">
@@ -158,6 +197,8 @@ export default function ExerciseRunner({
           <button
             className="btn-primary"
             onClick={() => {
+              // A new attempt needs a fresh server-issued ticket and question set.
+              if (attemptTicket) { window.location.reload(); return; }
               setQuestions(incomingQuestions);
               setI(0);
               setCollected([]);
@@ -166,6 +207,7 @@ export default function ExerciseRunner({
               setCheckResult(null);
               setCheckError(null);
               setSubmitError(null);
+              setDraftNotice(null);
               const firstQ: any    = incomingQuestions[0];
               const firstGame: string = firstQ?.metadata?.__game_type ?? exercise.game_type;
               setAnswer(firstGame === "word_type_sort" ? {} : null);
@@ -215,6 +257,7 @@ export default function ExerciseRunner({
 
   return (
     <div className="max-w-2xl mx-auto">
+      {draftNotice && <p role="status" className="text-sm mb-4">{draftNotice}</p>}
       <Link href={backHref} className="text-sm text-ink/60 hover:underline">
         {"<- back to chapter"}
       </Link>

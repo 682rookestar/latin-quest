@@ -6,7 +6,7 @@ const contentSecurityPolicy = [
   "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
   "font-src 'self' https://fonts.gstatic.com data:",
   "img-src 'self' data: blob:",
-  "connect-src 'self' https://*.supabase.co wss://*.supabase.co",
+  `connect-src 'self' https://*.supabase.co wss://*.supabase.co${isDevelopment && process.env.LATIN_QUEST_LOCAL_QA === "1" ? " http://127.0.0.1:55321 ws://127.0.0.1:55321" : ""}`,
   "object-src 'none'",
   "base-uri 'self'",
   "form-action 'self'",
@@ -17,6 +17,7 @@ const contentSecurityPolicy = [
 ].join("; ");
 
 const nextConfig = {
+  distDir: isDevelopment && process.env.LATIN_QUEST_LOCAL_QA === "1" ? ".next-qa" : ".next",
   reactStrictMode: true,
   poweredByHeader: false,
   async headers() {

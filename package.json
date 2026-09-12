@@ -3,6 +3,12 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
+    "qa:verify-retries": "node tests/local/verify-idempotency.mjs",
+    "qa:verify-classroom": "node tests/local/verify-classroom.mjs",
+    "qa:setup": "node tests/local/setup.mjs",
+    "qa:app": "node tests/local/app.mjs",
+    "qa:start": "npx --yes supabase@2.117.0 start --workdir tests/local --exclude logflare,vector,edge-runtime,supavisor",
+    "qa:stop": "npx --yes supabase@2.117.0 stop --workdir tests/local",
     "dev": "next dev",
     "build": "next build",
     "start": "next start",

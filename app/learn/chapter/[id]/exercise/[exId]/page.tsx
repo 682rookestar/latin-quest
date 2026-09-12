@@ -4,6 +4,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import ExerciseRunner from "@/components/ExerciseRunner";
 import type { ExerciseQuestionPublic } from "@/lib/types";
 import { publicQuestionMetadata } from "@/lib/security";
+import { issueExerciseTicket } from "@/lib/exercise-ticket";
 
 const BOSS_SAMPLE_SIZE = 15;
 
@@ -29,7 +30,8 @@ export default async function ExercisePage({
 
   // Honour the per-class chapter lock here too -- a student could
   // otherwise bookmark a deep exercise URL and bypass the /learn UI.
-  const { data: lockedRows } = await supabase.rpc("locked_chapters_for_me");
+  const { data: lockedRows, error: lockError } = await supabase.rpc("locked_chapters_for_me");
+  if (lockError || !Array.isArray(lockedRows)) throw new Error("Class access could not be confirmed. Please try again.");
   const isLocked = ((lockedRows as any[]) ?? []).some(
     (r) => r.chapter_id === exercise.chapter_id
   );
@@ -146,7 +148,9 @@ export default async function ExercisePage({
 
   return (
     <ExerciseRunner
-      key={exercise.id}
+      key={`${user.id}:${exercise.id}`}
+      studentId={user.id}
+      attemptTicket={publicQuestions.length ? issueExerciseTicket(user.id, exercise.id, publicQuestions.map(q => q.id)) : undefined}
       exercise={exercise}
       questions={publicQuestions}
       backHref={`/learn/chapter/${id}`}

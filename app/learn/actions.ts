@@ -4,6 +4,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { scoreAnswer } from "@/lib/scoring";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { verifyExerciseTicket } from "@/lib/exercise-ticket";
 
 type ExerciseAccess = {
   userId: string;
@@ -25,7 +26,8 @@ async function getStudentExerciseAccess(exerciseId: string): Promise<ExerciseAcc
   ]);
   if (profile?.role !== "student" || !membership || !exercise) return null;
 
-  const { data: lockedRows } = await supabase.rpc("locked_chapters_for_me");
+  const { data: lockedRows, error: lockError } = await supabase.rpc("locked_chapters_for_me");
+  if (lockError || !Array.isArray(lockedRows)) return null;
   if (((lockedRows as any[]) ?? []).some((row) => row.chapter_id === exercise.chapter_id)) {
     return null;
   }
@@ -59,7 +61,8 @@ export async function checkAnswer(
   questionId: string,
   studentAnswer: string
 ): Promise<{ is_correct: boolean; correct_answer: string } | { error: string }> {
-  if (!exerciseId || !questionId || studentAnswer.length > 5000) {
+  if (typeof exerciseId !== "string" || !exerciseId || typeof questionId !== "string" || !questionId ||
+      typeof studentAnswer !== "string" || studentAnswer.length > 5000) {
     return { error: "This answer could not be checked. Please try again." };
   }
   const access = await getStudentExerciseAccess(exerciseId);
@@ -94,14 +97,15 @@ export async function checkAnswer(
   };
 }
 
-// ─── Final submission (atomic, tamper-proof) ────────────────────────────────
+// ─── Final submission (server-scored, complete and idempotent) ──────────────
 // Called once, after all questions are answered. The client sends only raw
 // answers; this function fetches canonical answers from the DB, re-scores
 // every answer, then commits everything atomically via the
 // submit_exercise_attempt SECURITY DEFINER RPC.
 export async function submitExercise(
   exerciseId: string,
-  answers: { question_id: string; student_answer: string }[]
+  answers: { question_id: string; student_answer: string }[],
+  attemptTicket?: string
 ): Promise<{
   score_pct: number;
   correct: number;
@@ -109,18 +113,20 @@ export async function submitExercise(
   results: { question_id: string; is_correct: boolean; correct_answer: string }[];
   badge_earned: boolean;
 }> {
-  const access = await getStudentExerciseAccess(exerciseId);
-  if (!access) throw new Error("Not authorised");
-
-  const questionIds = answers.map((a) => a.question_id);
   if (
+    typeof exerciseId !== "string" || !exerciseId || !Array.isArray(answers) ||
     answers.length < 1 ||
     answers.length > 100 ||
-    new Set(questionIds).size !== questionIds.length ||
-    answers.some((answer) => !answer.question_id || answer.student_answer.length > 5000)
+    answers.some((answer) => !answer || typeof answer.question_id !== "string" || !answer.question_id ||
+      typeof answer.student_answer !== "string" || answer.student_answer.length > 5000)
   ) {
     throw new Error("Invalid answers");
   }
+  const questionIds = answers.map((a) => a.question_id);
+  if (new Set(questionIds).size !== questionIds.length) throw new Error("Invalid answers");
+  const access = await getStudentExerciseAccess(exerciseId);
+  if (!access) throw new Error("Not authorised");
+  const ticket = verifyExerciseTicket(attemptTicket, access.userId, exerciseId, questionIds);
 
   const { data: allowed, error: rateError } = await access.admin.rpc(
     "consume_exercise_rate_limit",
@@ -170,21 +176,23 @@ export async function submitExercise(
   // and authenticated Supabase clients cannot submit their own correctness
   // flags or progress values directly.
   const { data: summary, error: rpcErr } = await access.admin
-    .rpc("submit_exercise_attempt", {
+    .rpc("submit_exercise_attempt_once", {
+      p_ticket: ticket.id,
       p_student:     access.userId,
       p_exercise_id: exerciseId,
       p_answers:     rpcPayload,
+      p_results: results,
     })
     .single();
 
   if (rpcErr) throw new Error(`Submission failed: ${rpcErr.message}`);
 
-  const s = summary as { score_pct: number; correct: number; total: number; badge_earned: boolean };
+  const s = summary as { score_pct: number; correct: number; total: number; badge_earned: boolean; results: typeof results };
   return {
     score_pct:    s.score_pct,
     correct:      s.correct,
     total:        s.total,
-    results,
+    results: s.results,
     badge_earned: s.badge_earned,
   };
 }
