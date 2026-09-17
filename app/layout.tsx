@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import SignOutButton from "@/components/SignOutButton";
+import AdminSessionGuard from "@/components/AdminSessionGuard";
 
 export const metadata: Metadata = {
   title: "Latin Quest",
@@ -25,6 +26,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   return (
     <html lang="en">
       <body className="min-h-screen" style={{ background: "#0B1220" }}>
+        {role === "admin" && <AdminSessionGuard />}
         <header className="border-b border-white/10 sticky top-0 z-10" style={{ background: "rgba(11,18,32,0.9)", backdropFilter: "blur(12px)" }}>
           <nav className="max-w-6xl mx-auto px-6 py-3 flex items-center justify-between">
             <Link href="/" className="flex items-center gap-2 group">

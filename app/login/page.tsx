@@ -6,6 +6,7 @@ import Image from "next/image";
 import { createClient } from "@/lib/supabase/client";
 
 const URL_ERRORS: Record<string, string> = {
+  session_expired: "For security, your administrator session expired. Please sign in again.",
   missing_token: "The invite link is missing required information.",
   invite_expired: "That invite link is invalid or has already been used. Please ask your admin for a new one.",
   account_disabled: "Your teacher account has been disabled. Please contact an administrator.",
