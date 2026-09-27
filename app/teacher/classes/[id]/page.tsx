@@ -141,6 +141,28 @@ export default async function ClassDetail({ params }: { params: Promise<{ id: st
       </section>
 
       <section>
+        <h2 className="h-display text-xl mb-1">Activity analytics</h2>
+        <p className="text-sm text-ink/60 mb-3">
+          Choose a chapter to see its activities, class completion and each pupil&apos;s best score.
+        </p>
+        <div className="card grid sm:grid-cols-2 lg:grid-cols-3 gap-px bg-ink/10 overflow-hidden">
+          {chapters?.map((chapter: any) => (
+            <Link
+              key={chapter.id}
+              href={`/teacher/classes/${klass.id}/chapters/${chapter.id}`}
+              className="bg-parchment p-4 hover:bg-ink/5 flex items-center justify-between gap-3"
+            >
+              <div>
+                <div className="text-xs text-ink/60">Chapter {chapter.number}</div>
+                <div className="font-medium">{chapter.title}</div>
+              </div>
+              <span className="text-ink/40">&rsaquo;</span>
+            </Link>
+          ))}
+        </div>
+      </section>
+
+      <section>
         <h2 className="text-xl font-semibold mb-1">Chapter access</h2>
         <p className="text-sm text-ink/60 mb-3">
           Toggle a chapter Locked to hide it from your students on /learn. Open by default.
