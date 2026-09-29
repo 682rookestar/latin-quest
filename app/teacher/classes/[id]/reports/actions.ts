@@ -4,6 +4,7 @@ import { generateText } from "ai";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { hasAal2 } from "@/lib/auth-security";
+import { getReportAiModels } from "@/lib/report-ai";
 import { createClient } from "@/lib/supabase/server";
 import {
   buildReportPrompt,
@@ -13,8 +14,6 @@ import {
   type ReportInputs,
   type ReportingEvidence,
 } from "@/lib/reporting";
-
-const REPORT_AI_MODEL = process.env.REPORT_AI_MODEL?.trim() || "inclusionai/ling-3.0-flash-fin-free";
 
 export type ReportActionResult = { ok: boolean; message: string };
 
@@ -288,62 +287,73 @@ export async function generateStudentReport(
     return { ok: false, message: "There is no completed Latin Quest activity in this reporting period yet." };
   }
 
-  try {
-    const { text } = await generateText({
-      model: REPORT_AI_MODEL,
-      prompt: buildReportPrompt({
-        preferredName: context.studentName,
-        className: context.className,
-        evidence,
-        inputs,
-      }),
-    });
-    const draft = lowercaseTaskReferences(
-      text.trim(),
-      evidence.skillBreakdown.map((skill) => skill.skill)
-    );
-    if (!draft) return { ok: false, message: "The drafting service returned an empty response." };
-    if (containsExcludedReportContent(draft)) {
-      return { ok: false, message: "The generated report included an excluded metric or platform reference. Please generate it again." };
-    }
-    if (draft.length > 1200) {
-      return { ok: false, message: "The generated draft exceeded Halliford's 1,200-character limit. Please generate it again." };
-    }
+  const prompt = buildReportPrompt({
+    preferredName: context.studentName,
+    className: context.className,
+    evidence,
+    inputs,
+  });
+  const requestId = crypto.randomUUID();
+  const failures: Array<{ model: string; error: string }> = [];
 
-    const { error } = await context.supabase.from("student_reports").upsert({
-      ...reportRecord(periodId, studentId, context.userId, inputs, draft),
-      evidence_snapshot: evidence,
-      ai_draft: draft,
-      ai_model: REPORT_AI_MODEL,
-      generated_at: new Date().toISOString(),
-      generated_by: context.userId,
-      status: "generated",
-      approved_at: null,
-      approved_by: null,
-    }, { onConflict: "period_id,student_id" });
-    if (error) return { ok: false, message: error.message };
+  for (const model of getReportAiModels()) {
+    try {
+      const { text } = await generateText({ model, prompt });
+      const draft = lowercaseTaskReferences(
+        text.trim(),
+        evidence.skillBreakdown.map((skill) => skill.skill)
+      );
+      if (!draft) throw new Error("The model returned an empty response");
+      if (containsExcludedReportContent(draft)) {
+        throw new Error("The model returned excluded report content");
+      }
+      if (draft.length > 1200) {
+        throw new Error("The model exceeded the 1,200-character limit");
+      }
 
-    const styleErrors = checkHallifordStyle(draft, context.studentName).filter((check) => check.level === "error");
-    revalidatePath(reportPath(classId, periodId, studentId));
-    revalidatePath(`/teacher/classes/${classId}/reports`);
-    return {
-      ok: true,
-      message: styleErrors.length
-        ? "Draft generated. Review the highlighted style issue before approval."
-        : "Report generated from the pupil's Latin Quest evidence.",
-    };
-  } catch (error) {
-    const requestId = crypto.randomUUID();
-    console.error("[reporting] AI draft failed", {
-      requestId,
-      model: REPORT_AI_MODEL,
-      error: error instanceof Error ? error.message : String(error),
-    });
-    return {
-      ok: false,
-      message: `The report generator is temporarily unavailable. Please try again shortly. Reference: ${requestId}`,
-    };
+      const { error } = await context.supabase.from("student_reports").upsert({
+        ...reportRecord(periodId, studentId, context.userId, inputs, draft),
+        evidence_snapshot: evidence,
+        ai_draft: draft,
+        ai_model: model,
+        generated_at: new Date().toISOString(),
+        generated_by: context.userId,
+        status: "generated",
+        approved_at: null,
+        approved_by: null,
+      }, { onConflict: "period_id,student_id" });
+      if (error) return { ok: false, message: error.message };
+
+      const styleErrors = checkHallifordStyle(draft, context.studentName).filter((check) => check.level === "error");
+      revalidatePath(reportPath(classId, periodId, studentId));
+      revalidatePath(`/teacher/classes/${classId}/reports`);
+      return {
+        ok: true,
+        message: styleErrors.length
+          ? "Draft generated. Review the highlighted style issue before approval."
+          : "Report generated from the pupil's Latin Quest evidence.",
+      };
+    } catch (error) {
+      failures.push({
+        model,
+        error: error instanceof Error ? error.message : String(error),
+      });
+      console.warn("[reporting] AI model failed; trying fallback", {
+        requestId,
+        model,
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
   }
+
+  console.error("[reporting] all AI draft models failed", {
+    requestId,
+    failures,
+  });
+  return {
+    ok: false,
+    message: `The report generator is temporarily unavailable. Please try again shortly. Reference: ${requestId}`,
+  };
 }
 
 export async function approveStudentReport(
