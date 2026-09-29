@@ -140,6 +140,23 @@ describe("20-question exercise flow", () => {
     expect(api.check).toHaveBeenLastCalledWith("exercise", "q-0", "correct");
     expect(button("Next")).toBeDefined();
   });
+  it("shows a sign-in action without losing the current answer when the session expires", async () => {
+    api.check.mockResolvedValueOnce({
+      error: "Your session has expired. Sign in again, then return here and retry.",
+      code: "session_expired",
+    });
+    await click("correct");
+    await click("Check");
+    const signIn = renderer.root.findAllByType("a").find(link =>
+      link.children.join("") === "Your session has expired — sign in again"
+    );
+    expect(signIn?.props).toMatchObject({
+      href: "/login?error=student_session_expired",
+      target: "_blank",
+      rel: "noopener noreferrer",
+    });
+    expect(button("correct").props.disabled).not.toBe(true);
+  });
   it("retries saving the same 20 answers without losing or duplicating the last answer", async () => {
     api.submit.mockRejectedValueOnce(new Error("offline"));
     await complete();

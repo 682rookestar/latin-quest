@@ -12,30 +12,41 @@ type ExerciseAccess = {
   admin: ReturnType<typeof createAdminClient>;
 };
 
-async function getStudentExerciseAccess(exerciseId: string): Promise<ExerciseAccess | null> {
-  if (!exerciseId) return null;
+type ExerciseAccessResult =
+  | { access: ExerciseAccess; reason: null }
+  | { access: null; reason: "session_expired" | "access_denied" };
+
+async function getStudentExerciseAccess(exerciseId: string): Promise<ExerciseAccessResult> {
+  if (!exerciseId) return { access: null, reason: "access_denied" };
 
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return null;
+  if (!user) return { access: null, reason: "session_expired" };
 
   const [{ data: profile }, { data: membership }, { data: exercise }] = await Promise.all([
     supabase.from("profiles").select("role").eq("id", user.id).single(),
     supabase.from("class_members").select("class_id").eq("student_id", user.id).limit(1).maybeSingle(),
     supabase.from("exercises").select("id, chapter_id, is_boss").eq("id", exerciseId).single(),
   ]);
-  if (profile?.role !== "student" || !membership || !exercise) return null;
+  if (profile?.role !== "student" || !membership || !exercise) {
+    return { access: null, reason: "access_denied" };
+  }
 
   const { data: lockedRows, error: lockError } = await supabase.rpc("locked_chapters_for_me");
-  if (lockError || !Array.isArray(lockedRows)) return null;
+  if (lockError || !Array.isArray(lockedRows)) {
+    return { access: null, reason: "access_denied" };
+  }
   if (((lockedRows as any[]) ?? []).some((row) => row.chapter_id === exercise.chapter_id)) {
-    return null;
+    return { access: null, reason: "access_denied" };
   }
 
   return {
-    userId: user.id,
-    exercise: exercise as ExerciseAccess["exercise"],
-    admin: createAdminClient(),
+    access: {
+      userId: user.id,
+      exercise: exercise as ExerciseAccess["exercise"],
+      admin: createAdminClient(),
+    },
+    reason: null,
   };
 }
 
@@ -60,13 +71,21 @@ export async function checkAnswer(
   exerciseId: string,
   questionId: string,
   studentAnswer: string
-): Promise<{ is_correct: boolean; correct_answer: string } | { error: string }> {
+): Promise<
+  | { is_correct: boolean; correct_answer: string }
+  | { error: string; code?: "session_expired" }
+> {
   if (typeof exerciseId !== "string" || !exerciseId || typeof questionId !== "string" || !questionId ||
       typeof studentAnswer !== "string" || studentAnswer.length > 5000) {
     return { error: "This answer could not be checked. Please try again." };
   }
-  const access = await getStudentExerciseAccess(exerciseId);
-  if (!access) return { error: "Your session or class access could not be confirmed. Try again, or sign in in another tab." };
+  const accessResult = await getStudentExerciseAccess(exerciseId);
+  if (!accessResult.access) {
+    return accessResult.reason === "session_expired"
+      ? { error: "Your session has expired. Sign in again, then return here and retry.", code: "session_expired" }
+      : { error: "Your class access could not be confirmed. Return to the learning page or ask your teacher for help." };
+  }
+  const access = accessResult.access;
 
   const { data: allowed, error: rateError } = await access.admin.rpc(
     "consume_exercise_rate_limit",
@@ -124,8 +143,9 @@ export async function submitExercise(
   }
   const questionIds = answers.map((a) => a.question_id);
   if (new Set(questionIds).size !== questionIds.length) throw new Error("Invalid answers");
-  const access = await getStudentExerciseAccess(exerciseId);
-  if (!access) throw new Error("Not authorised");
+  const accessResult = await getStudentExerciseAccess(exerciseId);
+  if (!accessResult.access) throw new Error(accessResult.reason === "session_expired" ? "Session expired" : "Not authorised");
+  const access = accessResult.access;
   const ticket = verifyExerciseTicket(attemptTicket, access.userId, exerciseId, questionIds);
 
   const { data: allowed, error: rateError } = await access.admin.rpc(

@@ -39,6 +39,7 @@ export default function ExerciseRunner({
   const [answer, setAnswer]       = useState<any>(null);
   const [checking, setChecking]   = useState(false);
   const [checkError, setCheckError] = useState<string | null>(null);
+  const [sessionExpired, setSessionExpired] = useState(false);
   const [checkResult, setCheckResult] = useState<{ is_correct: boolean; correct_answer: string } | null>(null);
   const [collected, setCollected] = useState<CollectedAnswer[]>([]);
   const [finalResult, setFinalResult] = useState<FinalResult | null>(null);
@@ -88,16 +89,19 @@ export default function ExerciseRunner({
     if (checking) return;
     setChecking(true);
     setCheckError(null);
+    setSessionExpired(false);
     const serialised = serialise(answer, game);
     try {
       const result = await checkAnswer(exercise.id, q.id, serialised);
       if ("error" in result) {
         setCheckError(result.error);
+        setSessionExpired(result.code === "session_expired");
       } else {
         setCheckResult(result);
       }
     } catch {
       setCheckError("We couldn’t check your answer. It has not been marked incorrect. Please try Check again.");
+      setSessionExpired(false);
     } finally {
       setChecking(false);
     }
@@ -300,7 +304,21 @@ export default function ExerciseRunner({
             </>
           )}
         </div>
-        {checkError && <p role="alert" className="mt-3 text-sm text-wine">{checkError}</p>}
+        {checkError && (
+          <div role="alert" className="mt-3 text-sm text-wine space-y-3">
+            <p>{checkError}</p>
+            {sessionExpired && (
+              <a
+                className="btn-primary inline-block"
+                href="/login?error=student_session_expired"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                Your session has expired — sign in again
+              </a>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );

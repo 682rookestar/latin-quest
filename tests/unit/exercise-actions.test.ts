@@ -41,4 +41,12 @@ describe("exercise marking failures", () => {
     mocks.admin.mockReturnValue({ rpc: async () => ({ data: true }), from: () => query({ exercise_id: "exercise", correct_answer: "puella", metadata: {}, exercises: { game_type: "multiple_choice", chapter_id: "chapter", is_boss: false } }) });
     expect(await checkAnswer("exercise", "question", "puella")).toEqual({ is_correct: true, correct_answer: "puella" });
   });
+
+  it("identifies an expired pupil session separately from class access failures", async () => {
+    mocks.server.mockResolvedValueOnce({ auth: { getUser: async () => ({ data: { user: null } }) } });
+    expect(await checkAnswer("exercise", "question", "puella")).toEqual({
+      error: "Your session has expired. Sign in again, then return here and retry.",
+      code: "session_expired",
+    });
+  });
 });
