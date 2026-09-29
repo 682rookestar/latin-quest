@@ -5,8 +5,11 @@ import ExerciseRunner from "@/components/ExerciseRunner";
 import type { Exercise, ExerciseQuestionPublic } from "@/lib/types";
 import { DRAFT_KEY } from "@/lib/exercise-draft";
 
-const api = vi.hoisted(() => ({ check: vi.fn(), submit: vi.fn() }));
+const api = vi.hoisted(() => ({ check: vi.fn(), submit: vi.fn(), session: vi.fn() }));
 vi.mock("@/app/learn/actions", () => ({ checkAnswer: api.check, submitExercise: api.submit }));
+vi.mock("@/lib/supabase/client", () => ({
+  createClient: () => ({ auth: { getSession: api.session } }),
+}));
 vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: vi.fn() }) }));
 vi.mock("next/link", () => ({ default: "a" }));
 vi.mock("next/image", () => ({ default: "img" }));
@@ -34,6 +37,7 @@ async function complete() {
 }
 beforeEach(async () => {
   vi.resetAllMocks();
+  api.session.mockResolvedValue({ data: { session: { access_token: "qa" } }, error: null });
   api.check.mockResolvedValue({ is_correct: true, correct_answer: "correct" });
   api.submit.mockResolvedValue({ score_pct: 100, correct: 20, total: 20, badge_earned: false,
     results: questions.map(q => ({ question_id: q.id, is_correct: true, correct_answer: "correct" })) });
@@ -139,6 +143,14 @@ describe("20-question exercise flow", () => {
     await click("Check");
     expect(api.check).toHaveBeenLastCalledWith("exercise", "q-0", "correct");
     expect(button("Next")).toBeDefined();
+  });
+  it("preserves the selected answer and avoids the server action when the browser session is gone", async () => {
+    api.session.mockResolvedValueOnce({ data: { session: null }, error: null });
+    await click("correct");
+    await click("Check");
+    expect(api.check).not.toHaveBeenCalled();
+    expect(JSON.stringify(renderer.toJSON())).toContain("Your session has expired — sign in again");
+    expect(button("correct").props.className).toContain("bg-sky/15");
   });
   it("shows a sign-in action without losing the current answer when the session expires", async () => {
     api.check.mockResolvedValueOnce({

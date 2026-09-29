@@ -92,6 +92,16 @@ export default function ExerciseRunner({
     setSessionExpired(false);
     const serialised = serialise(answer, game);
     try {
+      // Refresh, if needed, under Supabase's browser lock before the Server
+      // Action starts. This prevents two open tabs racing the middleware with
+      // the same rotating refresh token. The server still authorises the user.
+      const { createClient: createBrowserClient } = await import("@/lib/supabase/client");
+      const { data: sessionData, error: sessionError } = await createBrowserClient().auth.getSession();
+      if (sessionError || !sessionData.session) {
+        setCheckError("Your session has expired. Sign in again, then return here and retry.");
+        setSessionExpired(true);
+        return;
+      }
       const result = await checkAnswer(exercise.id, q.id, serialised);
       if ("error" in result) {
         setCheckError(result.error);
