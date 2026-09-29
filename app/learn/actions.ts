@@ -17,26 +17,50 @@ type ExerciseAccessResult =
   | { access: null; reason: "session_expired" | "access_denied" };
 
 async function getStudentExerciseAccess(exerciseId: string): Promise<ExerciseAccessResult> {
-  if (!exerciseId) return { access: null, reason: "access_denied" };
+  if (!exerciseId) {
+    console.warn(JSON.stringify({ level: "warning", event: "exercise_access_denied", reason: "missing_exercise" }));
+    return { access: null, reason: "access_denied" };
+  }
 
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { access: null, reason: "session_expired" };
+  const { data: { user }, error: userError } = await supabase.auth.getUser();
+  if (!user) {
+    console.warn(JSON.stringify({
+      level: "warning",
+      event: "exercise_access_denied",
+      reason: "missing_session",
+      authCode: userError?.code ?? null,
+    }));
+    return { access: null, reason: "session_expired" };
+  }
 
-  const [{ data: profile }, { data: membership }, { data: exercise }] = await Promise.all([
+  const [profileResult, membershipResult, exerciseResult] = await Promise.all([
     supabase.from("profiles").select("role").eq("id", user.id).single(),
     supabase.from("class_members").select("class_id").eq("student_id", user.id).limit(1).maybeSingle(),
     supabase.from("exercises").select("id, chapter_id, is_boss").eq("id", exerciseId).single(),
   ]);
+  const { data: profile } = profileResult;
+  const { data: membership } = membershipResult;
+  const { data: exercise } = exerciseResult;
   if (profile?.role !== "student" || !membership || !exercise) {
+    console.warn(JSON.stringify({
+      level: "warning",
+      event: "exercise_access_denied",
+      reason: profile?.role !== "student" ? "not_student" : !membership ? "no_class_membership" : "exercise_unavailable",
+      profileCode: profileResult.error?.code ?? null,
+      membershipCode: membershipResult.error?.code ?? null,
+      exerciseCode: exerciseResult.error?.code ?? null,
+    }));
     return { access: null, reason: "access_denied" };
   }
 
   const { data: lockedRows, error: lockError } = await supabase.rpc("locked_chapters_for_me");
   if (lockError || !Array.isArray(lockedRows)) {
+    console.warn(JSON.stringify({ level: "warning", event: "exercise_access_denied", reason: "lock_check_failed", code: lockError?.code ?? null }));
     return { access: null, reason: "access_denied" };
   }
   if (((lockedRows as any[]) ?? []).some((row) => row.chapter_id === exercise.chapter_id)) {
+    console.warn(JSON.stringify({ level: "warning", event: "exercise_access_denied", reason: "chapter_locked" }));
     return { access: null, reason: "access_denied" };
   }
 

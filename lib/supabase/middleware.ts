@@ -16,23 +16,24 @@ export async function updateSession(request: NextRequest) {
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
-        get: (name: string) => request.cookies.get(name)?.value,
-        set: (name: string, value: string, options: CookieOptions) => {
-          request.cookies.set({ name, value, ...options });
+        getAll: () => request.cookies.getAll(),
+        setAll: (cookiesToSet: { name: string; value: string; options: CookieOptions }[]) => {
+          cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value));
           response = NextResponse.next({ request: { headers: request.headers } });
-          response.cookies.set({ name, value, ...options });
-        },
-        remove: (name: string, options: CookieOptions) => {
-          request.cookies.set({ name, value: "", ...options });
-          response = NextResponse.next({ request: { headers: request.headers } });
-          response.cookies.set({ name, value: "", ...options });
+          cookiesToSet.forEach(({ name, value, options }) => {
+            response.cookies.set(name, value, options);
+          });
         },
       },
     }
   );
-  const { data: { user } } = await supabase.auth.getUser();
+  // This validates the access token and refreshes it, when needed, before the
+  // request reaches a Server Component or Server Action. The bulk cookie
+  // adapter above ensures every chunk of the refreshed session is forwarded.
+  const { data: claimsData } = await supabase.auth.getClaims();
+  const userId = typeof claimsData?.claims?.sub === "string" ? claimsData.claims.sub : null;
 
-  if (!user && request.cookies.has(ADMIN_SESSION_COOKIE)) {
+  if (!userId && request.cookies.has(ADMIN_SESSION_COOKIE)) {
     response.cookies.delete(ADMIN_SESSION_COOKIE);
   }
 
@@ -40,11 +41,11 @@ export async function updateSession(request: NextRequest) {
     request.nextUrl.pathname.startsWith("/admin") ||
     request.nextUrl.pathname.startsWith("/teacher");
 
-  if (user && isStaffRoute) {
+  if (userId && isStaffRoute) {
     const { data: profile } = await supabase
       .from("profiles")
       .select("role, disabled_at")
-      .eq("id", user.id)
+      .eq("id", userId)
       .single();
 
     if (profile?.disabled_at) {
@@ -75,7 +76,7 @@ export async function updateSession(request: NextRequest) {
 
       const now = Date.now();
       const existing = await readAdminSessionStamp(request.cookies.get(ADMIN_SESSION_COOKIE)?.value, secret);
-      if (existing && (existing.userId !== user.id || isAdminSessionExpired(existing, now))) {
+      if (existing && (existing.userId !== userId || isAdminSessionExpired(existing, now))) {
         await supabase.auth.signOut();
         const url = request.nextUrl.clone();
         url.pathname = "/login";
@@ -86,7 +87,7 @@ export async function updateSession(request: NextRequest) {
         return redirectResponse;
       }
 
-      const stamp = { userId: user.id, startedAt: existing?.startedAt ?? now, activeAt: now };
+      const stamp = { userId, startedAt: existing?.startedAt ?? now, activeAt: now };
       response.cookies.set(ADMIN_SESSION_COOKIE, await createAdminSessionStamp(stamp, secret), {
         httpOnly: true,
         secure: process.env.NODE_ENV === "production",
