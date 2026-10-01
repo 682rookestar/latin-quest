@@ -39,7 +39,12 @@ describe("exercise marking failures", () => {
 
   it("still marks a successfully loaded correct answer correctly", async () => {
     mocks.admin.mockReturnValue({ rpc: async () => ({ data: true }), from: () => query({ exercise_id: "exercise", correct_answer: "puella", metadata: {}, exercises: { game_type: "multiple_choice", chapter_id: "chapter", is_boss: false } }) });
-    expect(await checkAnswer("exercise", "question", "puella")).toEqual({ is_correct: true, correct_answer: "puella" });
+    expect(await checkAnswer("exercise", "question", "puella")).toEqual({
+      is_correct: true,
+      correct_answer: "puella",
+      correct_count: 1,
+      total_count: 1,
+    });
   });
 
   it("identifies an expired pupil session separately from class access failures", async () => {

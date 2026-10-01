@@ -35,7 +35,10 @@ afterEach(() => vi.unstubAllEnvs());
 describe("submission tampering audit (mock database, no live writes)", () => {
   it("ignores forged pupil identity and correctness fields", async () => {
     await submitExercise("exercise", [{ question_id: "q1", student_answer: "wrong", is_correct: true, student_id: "another-pupil", score_pct: 100 } as any]);
-    expect(mocks.save.mock.calls[0][1]).toMatchObject({ p_student: "signed-in-pupil", p_answers: [{ question_id: "q1", student_answer: "wrong", is_correct: false }] });
+    expect(mocks.save.mock.calls[0][1]).toMatchObject({
+      p_student: "signed-in-pupil",
+      p_answers: [{ question_id: "q1", student_answer: "wrong", is_correct: false, points_earned: 0, points_possible: 1 }],
+    });
   });
   it("rejects questions belonging to another exercise", async () => {
     mocks.sourceId = "other-exercise";

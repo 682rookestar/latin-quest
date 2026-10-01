@@ -7,7 +7,7 @@ import type { Exercise, ExerciseQuestionPublic, GameType } from "@/lib/types";
 import { checkAnswer, submitExercise } from "@/app/learn/actions";
 
 type CollectedAnswer = { question_id: string; student_answer: string };
-type QuestionResult  = { question_id: string; is_correct: boolean; correct_answer: string };
+type QuestionResult  = { question_id: string; is_correct: boolean; correct_answer: string; correct_count: number; total_count: number };
 type FinalResult = {
   score_pct:    number;
   correct:      number;
@@ -40,7 +40,7 @@ export default function ExerciseRunner({
   const [checking, setChecking]   = useState(false);
   const [checkError, setCheckError] = useState<string | null>(null);
   const [sessionExpired, setSessionExpired] = useState(false);
-  const [checkResult, setCheckResult] = useState<{ is_correct: boolean; correct_answer: string } | null>(null);
+  const [checkResult, setCheckResult] = useState<Omit<QuestionResult, "question_id"> | null>(null);
   const [collected, setCollected] = useState<CollectedAnswer[]>([]);
   const [finalResult, setFinalResult] = useState<FinalResult | null>(null);
   const [submitting, setSubmitting]   = useState(false);
@@ -247,12 +247,14 @@ export default function ExerciseRunner({
                   <div className="flex justify-between text-xs">
                     <span>
                       your answer:{" "}
-                      <span className="font-mono">{collectedMap.get(qq.id) || "—"}</span>
+                      <span className="font-mono">
+                        {r && r.total_count > 1 ? `${r.correct_count} of ${r.total_count} correctly sorted` : collectedMap.get(qq.id) || "—"}
+                      </span>
                     </span>
-                    <span>
+                    {r && r.total_count <= 1 && <span>
                       expected:{" "}
                       <span className="font-mono">{r?.correct_answer ?? "—"}</span>
-                    </span>
+                    </span>}
                   </div>
                 </li>
               );
@@ -307,7 +309,12 @@ export default function ExerciseRunner({
             </button>
           ) : (
             <>
-              <FeedbackBadge ok={checkResult.is_correct} expected={checkResult.correct_answer} />
+              <FeedbackBadge
+                ok={checkResult.is_correct}
+                expected={checkResult.correct_answer}
+                correctCount={checkResult.correct_count}
+                totalCount={checkResult.total_count}
+              />
               <button className="btn-gold" onClick={handleNext}>
                 {i + 1 >= questions.length ? "Finish" : "Next"}
               </button>
@@ -334,10 +341,19 @@ export default function ExerciseRunner({
   );
 }
 
-function FeedbackBadge({ ok, expected }: { ok: boolean; expected: string }) {
+function FeedbackBadge({ ok, expected, correctCount, totalCount }: {
+  ok: boolean;
+  expected: string;
+  correctCount: number;
+  totalCount: number;
+}) {
   return (
     <span className={`chip ${ok ? "bg-olive/20 text-olive" : "bg-wine/20 text-wine"}`}>
-      {ok ? "Correct" : (<>Expected: <span className="font-mono ml-1">{expected}</span></>)}
+      {ok
+        ? "Correct"
+        : totalCount > 1
+          ? `${correctCount} of ${totalCount} correct`
+          : (<>Expected: <span className="font-mono ml-1">{expected}</span></>)}
     </span>
   );
 }

@@ -3,6 +3,7 @@ import {
   answersMatch,
   normaliseAnswer,
   scoreAnswer,
+  scoreAnswerDetails,
   translationMatches,
 } from "@/lib/scoring";
 
@@ -53,6 +54,19 @@ describe("answer scoring", () => {
     expect(scoreAnswer('{"puella":"noun","amat":"verb"}', "", "word_type_sort", metadata)).toBe(true);
     expect(scoreAnswer('{"puella":"noun"}', "", "word_type_sort", metadata)).toBe(false);
     expect(scoreAnswer("{}", "", "word_type_sort", null)).toBe(false);
+  });
+
+  it("awards one point for each correctly sorted word", () => {
+    const metadata = { words: [
+      { word: "puella", type: "noun" },
+      { word: "amat", type: "verb" },
+      { word: "saepe", type: "adverb" },
+    ] };
+    expect(scoreAnswerDetails('{"puella":"noun","amat":"verb","saepe":"noun"}', "", "word_type_sort", metadata)).toEqual({
+      isCorrect: false,
+      earned: 2,
+      possible: 3,
+    });
   });
 
   it("rejects oversized submissions", () => {

@@ -1,7 +1,7 @@
 "use server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { scoreAnswer } from "@/lib/scoring";
+import { scoreAnswerDetails } from "@/lib/scoring";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { verifyExerciseTicket } from "@/lib/exercise-ticket";
@@ -96,7 +96,7 @@ export async function checkAnswer(
   questionId: string,
   studentAnswer: string
 ): Promise<
-  | { is_correct: boolean; correct_answer: string }
+  | { is_correct: boolean; correct_answer: string; correct_count: number; total_count: number }
   | { error: string; code?: "session_expired" }
 > {
   if (typeof exerciseId !== "string" || !exerciseId || typeof questionId !== "string" || !questionId ||
@@ -134,9 +134,12 @@ export async function checkAnswer(
   const parentExercise = (data as any).exercises as { game_type: string } | null;
   const gameType: string = parentExercise?.game_type ?? "multiple_choice";
 
+  const score = scoreAnswerDetails(studentAnswer, correctAnswer, gameType, (data as any).metadata);
   return {
-    is_correct: scoreAnswer(studentAnswer, correctAnswer, gameType, (data as any).metadata),
+    is_correct: score.isCorrect,
     correct_answer: correctAnswer,
+    correct_count: score.earned,
+    total_count: score.possible,
   };
 }
 
@@ -153,7 +156,7 @@ export async function submitExercise(
   score_pct: number;
   correct: number;
   total: number;
-  results: { question_id: string; is_correct: boolean; correct_answer: string }[];
+  results: { question_id: string; is_correct: boolean; correct_answer: string; correct_count: number; total_count: number }[];
   badge_earned: boolean;
 }> {
   if (
@@ -198,14 +201,17 @@ export async function submitExercise(
   // Score every answer server-side from canonical DB data
   const results = answers.map(({ question_id, student_answer }) => {
     const q = qMap.get(question_id) as any | undefined;
-    if (!q) return { question_id, is_correct: false, correct_answer: "" };
+    if (!q) return { question_id, is_correct: false, correct_answer: "", correct_count: 0, total_count: 1 };
     const correctAnswer: string = q.correct_answer ?? "";
     const parentExercise = q.exercises as { game_type: string } | null;
     const gameType: string = parentExercise?.game_type ?? "multiple_choice";
+    const score = scoreAnswerDetails(student_answer, correctAnswer, gameType, q.metadata);
     return {
       question_id,
-      is_correct: scoreAnswer(student_answer, correctAnswer, gameType, q.metadata),
+      is_correct: score.isCorrect,
       correct_answer: correctAnswer,
+      correct_count: score.earned,
+      total_count: score.possible,
     };
   });
 
@@ -214,6 +220,8 @@ export async function submitExercise(
     question_id:    a.question_id,
     student_answer: a.student_answer,
     is_correct:     results[idx].is_correct,
+    points_earned:  results[idx].correct_count,
+    points_possible: results[idx].total_count,
   }));
 
   // This RPC is deliberately granted only to the service role. The browser

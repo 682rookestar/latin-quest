@@ -35,35 +35,57 @@ export function translationMatches(student: string, correct: string, alternative
   return [correct, ...curated, ...alternatives].some(candidate => normaliseTranslation(candidate) === submitted);
 }
 
-export function scoreAnswer(
+export type AnswerScore = {
+  isCorrect: boolean;
+  earned: number;
+  possible: number;
+};
+
+export function scoreAnswerDetails(
   studentAnswer: string,
   correctAnswer: string,
   gameType: string,
   metadata: unknown
-): boolean {
-  if (studentAnswer.length > 5000) return false;
+): AnswerScore {
+  if (studentAnswer.length > 5000) return { isCorrect: false, earned: 0, possible: 1 };
 
   if (gameType === "word_type_sort") {
     const details = metadata as { words?: { word: string; type: string }[] } | null;
     const items = details?.words ?? [];
     if (!Array.isArray(items) || !items.length || items.some(item =>
       !item || typeof item.word !== "string" || typeof item.type !== "string"
-    )) return false;
+    )) return { isCorrect: false, earned: 0, possible: 1 };
 
     let submitted: Record<string, string> = {};
     try {
       submitted = JSON.parse(studentAnswer);
     } catch {
-      return false;
+      return { isCorrect: false, earned: 0, possible: items.length };
     }
-    if (!submitted || typeof submitted !== "object" || Array.isArray(submitted)) return false;
-    return items.every((item) => Object.hasOwn(submitted, item.word) && submitted[item.word] === item.type);
+    if (!submitted || typeof submitted !== "object" || Array.isArray(submitted)) {
+      return { isCorrect: false, earned: 0, possible: items.length };
+    }
+    const earned = items.filter((item) =>
+      Object.hasOwn(submitted, item.word) && submitted[item.word] === item.type
+    ).length;
+    return { isCorrect: earned === items.length, earned, possible: items.length };
   }
 
-  if (gameType === "translation") {
-    const candidates = (metadata as { accepted_answers?: unknown } | null)?.accepted_answers;
-    const alternatives = Array.isArray(candidates) ? candidates.filter((value): value is string => typeof value === "string") : [];
-    return translationMatches(studentAnswer, correctAnswer, alternatives);
-  }
-  return answersMatch(studentAnswer, correctAnswer);
+  const isCorrect = gameType === "translation"
+    ? (() => {
+        const candidates = (metadata as { accepted_answers?: unknown } | null)?.accepted_answers;
+        const alternatives = Array.isArray(candidates) ? candidates.filter((value): value is string => typeof value === "string") : [];
+        return translationMatches(studentAnswer, correctAnswer, alternatives);
+      })()
+    : answersMatch(studentAnswer, correctAnswer);
+  return { isCorrect, earned: isCorrect ? 1 : 0, possible: 1 };
+}
+
+export function scoreAnswer(
+  studentAnswer: string,
+  correctAnswer: string,
+  gameType: string,
+  metadata: unknown
+): boolean {
+  return scoreAnswerDetails(studentAnswer, correctAnswer, gameType, metadata).isCorrect;
 }
