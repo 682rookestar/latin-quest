@@ -66,14 +66,14 @@ export default async function TeacherAdminPage() {
       <PageHero
         latinTag="Administratio"
         title="Teacher admin"
-        subtitle="Create secure one-time password recovery links for pupils in your classes."
+        subtitle="Create temporary passwords for pupils in your classes — no email link needed."
         variant="colosseum"
       />
 
       <section>
         <h2 className="h-display text-xl mb-1">Pupil accounts</h2>
         <p className="text-sm text-ink/60 mb-3">
-          A recovery link does not reveal the pupil&apos;s password. Send it privately and only to the pupil or an authorised adult.
+          Resetting signs the pupil out and replaces their current password. Share the temporary password privately; it expires after 24 hours and the pupil must choose their own password before continuing. Learning history is preserved.
         </p>
         {!classIds.length ? (
           <div className="card p-6 text-ink/60">You do not currently have an active class.</div>

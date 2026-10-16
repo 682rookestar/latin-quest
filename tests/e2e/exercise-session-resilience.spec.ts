@@ -88,9 +88,8 @@ test("shows the expired-session recovery link after a genuine sign-out", async (
 test("distinguishes removal from a class from an expired login", async ({ page }) => {
   await openAnsweredExercise(page);
   const admin = localAdmin();
-  const { data: users, error: usersError } = await admin.auth.admin.listUsers();
+  const { data: pupil, error: usersError } = await admin.from("profiles").select("id").eq("email", EMAIL).single();
   if (usersError) throw usersError;
-  const pupil = users.users.find(user => user.email === EMAIL);
   if (!pupil) throw new Error("Synthetic QA pupil not found");
 
   const removed = await admin.from("class_members").delete().eq("class_id", CLASS_ID).eq("student_id", pupil.id);

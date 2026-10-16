@@ -2,11 +2,17 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import PasswordForm from "./PasswordForm";
 import MfaManager from "./MfaManager";
+import { parseStudentPasswordStatus } from "@/lib/student-password";
 
 export default async function AccountPage() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
+  const { data: passwordStatusData, error: passwordStatusError } = await supabase.rpc("student_password_status");
+  const passwordStatus = parseStudentPasswordStatus(passwordStatusData);
+  if (passwordStatusError || !passwordStatus) throw new Error("Password access could not be confirmed. Please try again.");
+  if (!passwordStatus.session_valid) redirect("/login?error=password_reset");
+  if (passwordStatus.required) redirect("/account/change-password");
 
   const { data: profile } = await supabase
     .from("profiles")

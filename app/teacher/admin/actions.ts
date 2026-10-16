@@ -4,12 +4,10 @@ import { revalidatePath } from "next/cache";
 import { hasAal2 } from "@/lib/auth-security";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
+import { issueTeacherStudentTemporaryPassword } from "@/lib/student-password-reset";
+import type { TemporaryPasswordResult } from "@/lib/student-password";
 
-export type TeacherStudentPasswordResetResult = {
-  ok: boolean;
-  message: string;
-  recoveryLink?: string;
-};
+export type TeacherStudentPasswordResetResult = TemporaryPasswordResult;
 
 export async function resetTeacherStudentPassword(
   _previous: TeacherStudentPasswordResetResult | null,
@@ -65,56 +63,10 @@ export async function resetTeacherStudentPassword(
     .eq("id", studentId)
     .single();
   if (studentError || !student || student.role !== "student" || student.disabled_at || !student.email) {
-    return { ok: false, message: "Only an active pupil can receive a recovery link." };
+    return { ok: false, message: "Only an active pupil can receive a temporary password." };
   }
 
-  const auditEntry = {
-    target_user_id: student.id,
-    target_email: student.email,
-    target_display_name: student.display_name,
-    actor_id: user.id,
-    actor_email: user.email ?? null,
-    action: "reset_password",
-    reason: "Teacher-issued one-time recovery link",
-    outcome: "pending",
-  };
-  const { data: audit, error: auditError } = await admin
-    .from("student_account_audit")
-    .insert(auditEntry)
-    .select("id")
-    .single();
-  if (auditError || !audit) {
-    return { ok: false, message: "Could not create the required audit record. Nothing was changed." };
-  }
-
-  const origin = (process.env.NEXT_PUBLIC_SITE_URL ?? "").replace(/\/$/, "");
-  const { data: linkData, error: linkError } = await admin.auth.admin.generateLink({
-    type: "recovery",
-    email: student.email,
-    options: { redirectTo: origin ? `${origin}/account` : undefined },
-  });
-  const hashedToken =
-    (linkData as any)?.properties?.hashed_token ??
-    (linkData as any)?.hashed_token ??
-    null;
-  if (linkError || !origin || !hashedToken) {
-    await admin.from("student_account_audit").update({ outcome: "failed" }).eq("id", audit.id);
-    return { ok: false, message: "Could not generate a secure recovery link. No password was changed." };
-  }
-
-  const recoveryLink = `${origin}/auth/confirm?token_hash=${encodeURIComponent(hashedToken)}&type=recovery&next=/account`;
-  const { error: outcomeError } = await admin
-    .from("student_account_audit")
-    .update({ outcome: "success" })
-    .eq("id", audit.id);
-  if (outcomeError) {
-    return { ok: false, message: "The link was generated, but its audit record could not be completed. Please generate another link." };
-  }
-
-  revalidatePath("/teacher/admin");
-  return {
-    ok: true,
-    message: `One-time recovery link created for ${student.email}.`,
-    recoveryLink,
-  };
+  const result = await issueTeacherStudentTemporaryPassword(admin, { id: student.id, email: student.email }, user.id);
+  if (result.ok) revalidatePath("/teacher/admin");
+  return result;
 }

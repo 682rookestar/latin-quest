@@ -11,6 +11,7 @@ const URL_ERRORS: Record<string, string> = {
   missing_token: "The invite link is missing required information.",
   invite_expired: "That invite link is invalid or has already been used. Please ask your admin for a new one.",
   account_disabled: "Your teacher account has been disabled. Please contact an administrator.",
+  password_reset: "Your password was reset or changed. Sign in with your latest password; ask your teacher for help if needed.",
 };
 
 export default function LoginPage() {
@@ -37,10 +38,9 @@ export default function LoginPage() {
     const isStaff = profile?.role === "teacher" || profile?.role === "admin";
 
     router.push(
-      isStaff && assurance?.currentLevel !== "aal2"
-        ? assurance?.nextLevel === "aal2"
-          ? "/mfa/verify"
-          : "/account?mfa=required"
+      assurance?.nextLevel === "aal2" && assurance.currentLevel !== "aal2" ? "/mfa/verify"
+        : isStaff && assurance?.currentLevel !== "aal2"
+          ? "/account?mfa=required"
         : "/dashboard"
     );
     router.refresh();
@@ -80,6 +80,7 @@ export default function LoginPage() {
             {urlError}
           </p>
         )}
+        {searchParams.get("password") === "changed" && <p className="text-sm text-olive mb-4">Your password has been changed. Sign in with your new password.</p>}
         <form onSubmit={submit} className="space-y-4">
           <input className="input" type="email" placeholder="email" value={email} onChange={e => setEmail(e.target.value)} required />
           <input className="input" type="password" placeholder="password" value={password} onChange={e => setPassword(e.target.value)} required />

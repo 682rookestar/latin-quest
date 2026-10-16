@@ -5,6 +5,7 @@ const mocks = vi.hoisted(() => ({
   adminClient: null as any,
   hasAal2: vi.fn(),
   revalidatePath: vi.fn(),
+  issueTemporaryPassword: vi.fn(),
 }));
 
 vi.mock("@/lib/supabase/server", () => ({
@@ -19,6 +20,7 @@ vi.mock("@/lib/auth-security", () => ({
 vi.mock("next/cache", () => ({
   revalidatePath: mocks.revalidatePath,
 }));
+vi.mock("@/lib/student-password-reset", () => ({ issueTeacherStudentTemporaryPassword: mocks.issueTemporaryPassword }));
 
 import { resetTeacherStudentPassword } from "@/app/teacher/admin/actions";
 
@@ -110,12 +112,13 @@ function adminClient({ ownsStudent }: { ownsStudent: boolean }) {
   return { client, generateLink };
 }
 
-describe("teacher pupil password recovery", () => {
+describe("teacher pupil temporary password reset", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     process.env.NEXT_PUBLIC_SITE_URL = "https://latin-quest.test";
     mocks.regularClient = regularTeacherClient();
     mocks.hasAal2.mockResolvedValue(true);
+    mocks.issueTemporaryPassword.mockResolvedValue({ ok: true, message: "Temporary password created.", temporaryPassword: "Dummy-Temporary!7294", expiresAt: "2026-10-17T12:00:00Z" });
   });
 
   it("refuses a pupil outside the teacher's own classes", async () => {
@@ -127,6 +130,7 @@ describe("teacher pupil password recovery", () => {
     expect(result.ok).toBe(false);
     expect(result.message).toContain("your active classes");
     expect(admin.generateLink).not.toHaveBeenCalled();
+    expect(mocks.issueTemporaryPassword).not.toHaveBeenCalled();
   });
 
   it("requires teacher MFA before using the privileged client", async () => {
@@ -140,9 +144,10 @@ describe("teacher pupil password recovery", () => {
     expect(result.message).toContain("Two-factor authentication");
     expect(admin.client.from).not.toHaveBeenCalled();
     expect(admin.generateLink).not.toHaveBeenCalled();
+    expect(mocks.issueTemporaryPassword).not.toHaveBeenCalled();
   });
 
-  it("creates an audited one-time recovery link for an owned pupil", async () => {
+  it("issues a temporary password only after confirming the owned pupil", async () => {
     const admin = adminClient({ ownsStudent: true });
     mocks.adminClient = admin.client;
 
@@ -150,14 +155,12 @@ describe("teacher pupil password recovery", () => {
 
     expect(result).toEqual({
       ok: true,
-      message: "One-time recovery link created for pupil@school.test.",
-      recoveryLink: "https://latin-quest.test/auth/confirm?token_hash=hashed-token&type=recovery&next=/account",
+      message: "Temporary password created.",
+      temporaryPassword: "Dummy-Temporary!7294",
+      expiresAt: "2026-10-17T12:00:00Z",
     });
-    expect(admin.generateLink).toHaveBeenCalledWith({
-      type: "recovery",
-      email: "pupil@school.test",
-      options: { redirectTo: "https://latin-quest.test/account" },
-    });
+    expect(mocks.issueTemporaryPassword).toHaveBeenCalledWith(admin.client, { id: "student-1", email: "pupil@school.test" }, "teacher-1");
+    expect(admin.generateLink).not.toHaveBeenCalled();
     expect(mocks.revalidatePath).toHaveBeenCalledWith("/teacher/admin");
   });
 });

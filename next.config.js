@@ -18,6 +18,9 @@ const contentSecurityPolicy = [
 
 const nextConfig = {
   distDir: isDevelopment && process.env.LATIN_QUEST_LOCAL_QA === "1" ? ".next-qa" : ".next",
+  // Preserve the exact loopback origin in QA redirects and its host-only auth
+  // cookies. Normal Vercel/production URL handling is unchanged.
+  skipMiddlewareUrlNormalize: isDevelopment && process.env.LATIN_QUEST_LOCAL_QA === "1",
   reactStrictMode: true,
   poweredByHeader: false,
   async headers() {

@@ -58,6 +58,7 @@ export default function VerifyMfaPage() {
           autoComplete="one-time-code"
           placeholder="000000"
           aria-label="Authenticator code"
+          disabled={loading || !factorId}
           autoFocus
         />
         {error && <p className="text-wine text-sm">{error}</p>}
