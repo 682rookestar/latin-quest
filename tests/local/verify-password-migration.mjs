@@ -5,7 +5,7 @@ import { readFileSync } from 'node:fs';
 // transaction, then roll back. No existing QA workflow/history is removed.
 const status = JSON.parse(execFileSync('npx', ['--yes', 'supabase@2.117.0', 'status', '--workdir', 'tests/local', '-o', 'json'], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }));
 if (status.API_URL !== 'http://127.0.0.1:55321') throw new Error('Refusing a non-local database');
-const migration = readFileSync('supabase/migrations/20261016172832_student_temporary_passwords.sql', 'utf8');
+const migration = readFileSync('supabase/migrations/20261016181813_student_temporary_passwords.sql', 'utf8');
 const reconstruct = `
 DO $$ DECLARE v_name text; v_identity text;
 BEGIN

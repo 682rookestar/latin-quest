@@ -59,11 +59,17 @@ Screenshots are in `.codex-artifacts/password-reset/`. These are local Chromium/
 
 The isolated password-only release snapshot also passed all 143 applicable unit tests (one existing optional test skipped) and a production build, with all visual-pilot changes excluded.
 
+### Production release — 16 October 2026
+
+Password-only application commit `aa31db7` was published successfully to `https://latin-quest.vercel.app`. All 12 browser regression checks passed on the isolated local release snapshot before publishing. Live smoke checks confirmed the new login confirmation, unauthenticated access protection and absence of all three visual-pilot images. Initial deployment runtime logs contained no error/fatal entries. No live pupil passwords were changed to perform these checks.
+
+The production migration is recorded as `20261016181813_student_temporary_passwords`. The local filename matches that server-generated version to prevent accidental reapplication. Before/after totals were unchanged: 228 profiles, 998 attempts, 16,115 answers, 877 skill-progress records, 131 badges and 224 class memberships; the new password-reset workflow table remained empty.
+
 API references: [Supabase admin password updates](https://supabase.com/docs/reference/javascript/auth-admin-updateuserbyid), [session revocation](https://supabase.com/docs/reference/javascript/auth-admin-signout), [session lifetime and access-token limitations](https://supabase.com/docs/guides/auth/sessions).
 
 ## Password-only release boundary — do not publish the visuals
 
-Apply `supabase/migrations/20261016172832_student_temporary_passwords.sql` **before** deploying the password app code. The new app fails closed if the required status RPC is absent. Verify production schema drift before applying the migration; the local database is not a production clone.
+Apply `supabase/migrations/20261016181813_student_temporary_passwords.sql` **before** deploying the password app code. This migration has already been applied to production; do not apply it again. The new app fails closed if the required status RPC is absent. Verify production schema drift before applying the migration to another environment; the local database is not a production clone.
 
 Runtime files for a password-only release:
 

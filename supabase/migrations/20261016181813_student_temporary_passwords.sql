@@ -1,3 +1,4 @@
+-- Version matches the migration recorded by the production Supabase deployment.
 -- Passwords remain in Supabase Auth. This table stores only workflow state,
 -- expiry, audit references and a short operation lease (never a password).
 CREATE SCHEMA IF NOT EXISTS latin_quest_private;
